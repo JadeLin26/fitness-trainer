@@ -50,7 +50,7 @@ function renderList() {
     if (!exs) continue;
 
     const totalMins = exs.reduce((s, ex) => s + (_estimateMinutes(ex) || 0), 0);
-    const doneExs = exs.filter(ex => store.isChecked(ex.id, day));
+    const doneExs = exs.filter(ex => _isExDone(ex, day));
     const doneMins = doneExs.reduce((s, ex) => s + (_estimateMinutes(ex) || 0), 0);
     const remainMins = totalMins - doneMins;
     const countLabel = `${doneExs.length}/${exs.length}项`;
@@ -65,7 +65,7 @@ function renderList() {
       <span class="cat-progress">${countLabel} · ${timeLabel}</span>
     </div>`;
     for (const ex of exs) {
-      const checked = store.isChecked(ex.id, day);
+      const checked = _isExDone(ex, day);
       const expanded = _expandedId === ex.id;
       const params = _renderParams(ex);
       const hasVideo = ex.video && ex.video !== null;
@@ -225,12 +225,20 @@ function _toggleCard(id) {
 }
 
 // --- Progress summary ---
+function _isExDone(ex, day) {
+  if (ex.dailyTarget) {
+    const reps = store.getDayTotalReps(ex.id, day);
+    return reps >= ex.dailyTarget;
+  }
+  return store.isChecked(ex.id, day);
+}
+
 function _updateProgressSummary() {
   const day = store.trainingDay();
   const dailyExs = getDailyExercises();
   let done = 0;
   for (const ex of dailyExs) {
-    if (store.isChecked(ex.id, day)) done++;
+    if (_isExDone(ex, day)) done++;
   }
   const total = dailyExs.length;
   const pct = total ? Math.round(done / total * 100) : 0;
