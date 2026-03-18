@@ -58,7 +58,7 @@ function renderList() {
       html += `
         <div class="ex-card ${expanded ? 'expanded' : ''}" data-id="${ex.id}">
           <div class="ex-card-header" data-id="${ex.id}" role="button" tabindex="0" aria-expanded="${expanded}">
-            <div class="ex-card-icon">${_getCatIcon(ex.category)}</div>
+            <div class="ex-card-icon" data-cat="${ex.category}">${_getCatIcon(ex.category)}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
               <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
