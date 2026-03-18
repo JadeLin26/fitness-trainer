@@ -397,7 +397,7 @@ function _renderStats() {
   }
 
   // Heatmap header
-  let heatHtml = '<table class="heatmap-table"><thead><tr><th></th>';
+  let heatHtml = '<table class="heatmap-table"><colgroup><col class="hm-col-name">' + '<col class="hm-col-day">'.repeat(7) + '</colgroup><thead><tr><th></th>';
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDays[i].slice(8);
     const isToday = weekDays[i] === store.trainingDay();
@@ -413,8 +413,7 @@ function _renderStats() {
     let catCount = 0;
 
     for (const ex of exs) {
-      const shortName = ex.name.length > 6 ? ex.name.slice(0, 6) + '…' : ex.name;
-      heatHtml += `<tr><td class="hm-name">${shortName}</td>`;
+      heatHtml += `<tr><td class="hm-name">${ex.name}</td>`;
       let exWeekCount = 0, exWeekReps = 0, exWeekHold = 0;
 
       for (let i = 0; i < 7; i++) {

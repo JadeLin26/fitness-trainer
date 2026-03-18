@@ -439,15 +439,16 @@ body {
 .heatmap-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
+.hm-col-name { /* auto: takes all remaining space */ }
+.hm-col-day { width: 28px; }
 .heatmap-table th {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--text2);
-  padding: 4px 1px;
+  padding: 2px 0;
   text-align: center;
-  width: 28px;
-  min-width: 28px;
 }
 .heatmap-table th.today {
   color: var(--accent);
@@ -471,22 +472,23 @@ body {
 .hm-name {
   font-size: 12px;
   color: var(--text2);
-  text-align: right;
+  text-align: left;
   padding-right: 6px;
   white-space: nowrap;
-  width: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hm-cell {
   text-align: center;
-  padding: 4px 1px;
+  padding: 2px 0;
   cursor: pointer;
   position: relative;
 }
 .hm-cell.today { background: rgba(0, 122, 255, 0.06); }
 .hm-svg {
   display: block;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   margin: 0 auto;
   border-radius: 3px;
 }
