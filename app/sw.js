@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitness-v2';
+const CACHE_NAME = 'fitness-v3';
 
 const PRECACHE = [
   '/app/index.html',

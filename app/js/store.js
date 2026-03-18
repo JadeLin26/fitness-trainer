@@ -1,20 +1,17 @@
-// localStorage-based training data store with 6AM day boundary + Supabase cloud sync.
+// localStorage-based training data store with 6AM day boundary + Supabase cloud sync via REST API.
 
 const STORE_KEY = 'fitness_training_data';
 const CONFIG_KEY = 'fitness_training_config';
 const DEVICE_ID = _getDeviceId();
 
-const SUPABASE_URL = 'https://xdflczptaiptmrwtaoye.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_L_GiFhoO6rV8Rhe70tOivA_8Oorcgaa';
-
-let _sb = null;
-function _supabase() {
-  if (_sb) return _sb;
-  if (typeof window.supabase !== 'undefined') {
-    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  }
-  return _sb;
-}
+const SB_URL = 'https://xdflczptaiptmrwtaoye.supabase.co/rest/v1';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkZmxjenB0YWlwdG1yd3Rhb3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTkxNDcsImV4cCI6MjA4OTQzNTE0N30.df1tan5GOwfiauVqgManHpkxc24m7nPcPcLGJrXnk2M';
+const SB_HEADERS = {
+  'apikey': SB_KEY,
+  'Authorization': `Bearer ${SB_KEY}`,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=minimal',
+};
 
 function _getDeviceId() {
   let id = localStorage.getItem('fitness_device_id');
@@ -60,20 +57,22 @@ export function recordSession(exerciseId, { sets, repsPerSet, totalReps, holdSec
 }
 
 async function _syncSessionToCloud(day, exerciseId, entry) {
-  const sb = _supabase();
-  if (!sb) return;
   try {
-    await sb.from('training_sessions').insert({
-      device_id: DEVICE_ID,
-      training_day: day,
-      exercise_id: exerciseId,
-      time: entry.time,
-      sets: entry.sets || null,
-      reps_per_set: entry.repsPerSet || null,
-      total_reps: entry.totalReps || 0,
-      hold_seconds: entry.holdSeconds || 0,
-      duration_seconds: entry.durationSeconds || 0,
-      session_kind: entry.sessionKind || '完成',
+    await fetch(`${SB_URL}/training_sessions`, {
+      method: 'POST',
+      headers: SB_HEADERS,
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        training_day: day,
+        exercise_id: exerciseId,
+        time: entry.time,
+        sets: entry.sets || null,
+        reps_per_set: entry.repsPerSet || null,
+        total_reps: entry.totalReps || 0,
+        hold_seconds: entry.holdSeconds || 0,
+        duration_seconds: entry.durationSeconds || 0,
+        session_kind: entry.sessionKind || 'done',
+      }),
     });
   } catch (e) {
     console.warn('Supabase sync failed:', e);
@@ -111,14 +110,16 @@ export function markChecked(exerciseId, day) {
 }
 
 async function _syncCheckToCloud(day, exerciseId) {
-  const sb = _supabase();
-  if (!sb) return;
   try {
-    await sb.from('daily_checklist').upsert({
-      device_id: DEVICE_ID,
-      training_day: day,
-      exercise_id: exerciseId,
-    }, { onConflict: 'device_id,training_day,exercise_id' });
+    await fetch(`${SB_URL}/daily_checklist`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        training_day: day,
+        exercise_id: exerciseId,
+      }),
+    });
   } catch (e) {
     console.warn('Supabase check sync failed:', e);
   }
@@ -156,15 +157,13 @@ export function exportCSV() {
   a.click();
 }
 
-// Pull cloud data and merge into localStorage on startup
 export async function syncFromCloud() {
-  const sb = _supabase();
-  if (!sb) return;
   try {
-    const { data: sessions } = await sb
-      .from('training_sessions')
-      .select('*')
-      .order('created_at', { ascending: true });
+    const res = await fetch(`${SB_URL}/training_sessions?order=created_at.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (!res.ok) return;
+    const sessions = await res.json();
 
     if (sessions?.length) {
       const local = _load();
@@ -192,9 +191,11 @@ export async function syncFromCloud() {
       if (merged) _save(local);
     }
 
-    const { data: checks } = await sb
-      .from('daily_checklist')
-      .select('*');
+    const res2 = await fetch(`${SB_URL}/daily_checklist`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (!res2.ok) return;
+    const checks = await res2.json();
 
     if (checks?.length) {
       for (const c of checks) {
