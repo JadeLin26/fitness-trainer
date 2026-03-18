@@ -367,8 +367,8 @@ body {
   padding: 16px 0 6px;
 }
 
-/* ===== History Panel ===== */
-.history-panel {
+/* ===== Stats Panel ===== */
+.stats-panel {
   position: fixed;
   inset: 0;
   background: var(--bg);
@@ -378,7 +378,7 @@ body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
-.history-header {
+.stats-topbar {
   position: sticky;
   top: 0;
   background: var(--bg);
@@ -389,7 +389,7 @@ body {
   border-bottom: 1px solid var(--border);
   z-index: 1;
 }
-.history-back, .history-export {
+.stats-back, .stats-export {
   background: none;
   border: none;
   font-size: 16px;
@@ -397,69 +397,195 @@ body {
   cursor: pointer;
   padding: 4px 8px;
 }
-.history-title {
+.stats-title {
   font-size: 17px;
   font-weight: 600;
 }
-.history-content {
-  padding: 16px 20px;
+
+/* Week nav */
+.stats-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 12px 20px;
+}
+.stats-week-nav button {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 12px;
+  line-height: 1;
+}
+.stats-week-label {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* Heatmap table */
+.stats-heatmap {
+  padding: 0 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  overflow-x: auto;
+}
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.heatmap-table th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text2);
+  padding: 6px 2px;
+  text-align: center;
+}
+.heatmap-table th.today {
+  color: var(--accent);
+  font-weight: 700;
+}
+.hm-date {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.hm-name {
+  font-size: 12px;
+  color: var(--text2);
+  text-align: right;
+  padding-right: 8px;
+  white-space: nowrap;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hm-cell {
+  text-align: center;
+  padding: 6px 2px;
+  cursor: pointer;
+  position: relative;
+}
+.hm-cell.today { background: rgba(0, 122, 255, 0.04); }
+.hm-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.hm-cell.level-0 .hm-dot { display: none; }
+.hm-cell.level-1 .hm-dot { background: #c6e48b; }
+.hm-cell.level-2 .hm-dot { background: #7bc96f; }
+.hm-cell.level-3 .hm-dot { background: #239a3b; }
+
+/* Summary cards */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 16px;
   max-width: 560px;
   margin: 0 auto;
 }
-.history-day {
-  margin-bottom: 24px;
+.stats-card {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  box-shadow: var(--shadow);
 }
-.history-day-header {
+.stats-card-name {
+  font-size: 13px;
+  color: var(--text2);
+  margin-bottom: 4px;
+}
+.stats-card-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.stats-card-metric {
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+.stats-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+  font-size: 14px;
+}
+
+/* Day detail */
+.stats-day-detail {
+  padding: 0 16px 80px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+.detail-day-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--text);
-  padding: 8px 0;
+  padding: 12px 0 8px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
 }
-.history-session {
+.detail-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 8px;
+  padding: 10px 12px;
   background: var(--card);
   border-radius: var(--radius-sm);
   margin-bottom: 6px;
   box-shadow: var(--shadow);
+  font-size: 14px;
 }
-.history-session-time {
+.detail-time {
   font-size: 13px;
   color: var(--text2);
-  min-width: 44px;
+  min-width: 40px;
 }
-.history-session-name {
+.detail-name {
   flex: 1;
-  font-size: 14px;
   font-weight: 500;
 }
-.history-session-detail {
+.detail-metric {
   font-size: 13px;
-  color: var(--text2);
+  color: var(--accent);
 }
-.history-session-kind {
+.detail-dur {
   font-size: 12px;
+  color: var(--text3);
+}
+.detail-kind {
+  font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 500;
 }
-.history-session-kind.done {
-  background: #E8F5E9;
-  color: #2E7D32;
-}
-.history-session-kind.cancelled {
-  background: #FFF3E0;
-  color: #E65100;
-}
-.history-empty {
+.detail-kind.done { background: #E8F5E9; color: #2E7D32; }
+.detail-kind.stopped { background: #FFF3E0; color: #E65100; }
+.detail-empty {
   text-align: center;
-  padding: 60px 20px;
+  padding: 24px;
   color: var(--text3);
-  font-size: 15px;
+  font-size: 14px;
+}
+.detail-checks-title {
+  font-size: 13px;
+  color: var(--text2);
+  padding: 12px 0 6px;
+  font-weight: 600;
+}
+.detail-check-row {
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #E8F5E9;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  color: #2E7D32;
 }
 
 /* Check button (habit exercises) */

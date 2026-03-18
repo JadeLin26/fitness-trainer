@@ -251,64 +251,180 @@ function _closeOverlay() {
   renderList();
 }
 
-// --- History panel ---
-function _openHistory() {
-  const panel = $('.history-panel');
-  panel.style.display = '';
-  const content = $('.history-content');
-  const days = store.getAllDays().reverse();
+// --- Stats panel ---
+let _weekOffset = 0;
 
-  if (days.length === 0) {
-    content.innerHTML = '<div class="history-empty">暂无训练记录</div>';
-    return;
+function _getWeekDays(offset = 0) {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const mon = new Date(now);
+  mon.setDate(now.getDate() - day + 1 + offset * 7);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    days.push(d.toISOString().slice(0, 10));
   }
+  return days;
+}
 
+function _getWeekLabel(offset) {
+  if (offset === 0) return '本周';
+  if (offset === -1) return '上周';
+  const days = _getWeekDays(offset);
+  return `${days[0].slice(5)} ~ ${days[6].slice(5)}`;
+}
+
+function _openStats() {
+  $('.stats-panel').style.display = '';
+  _renderStats();
+}
+
+function _closeStats() {
+  $('.stats-panel').style.display = 'none';
+  _weekOffset = 0;
+}
+
+function _renderStats() {
+  const weekDays = _getWeekDays(_weekOffset);
+  const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
+  const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
+  const allExercises = exercises;
+
+  $('.stats-week-label').textContent = _getWeekLabel(_weekOffset);
+
+  // Heatmap: 7 columns (days) × exercise rows
+  let heatHtml = '<table class="heatmap-table"><thead><tr><th></th>';
+  for (let i = 0; i < 7; i++) {
+    const dateStr = weekDays[i].slice(8);
+    const isToday = weekDays[i] === store.trainingDay();
+    heatHtml += `<th class="${isToday ? 'today' : ''}">${dayNames[i]}<br><span class="hm-date">${dateStr}</span></th>`;
+  }
+  heatHtml += '</tr></thead><tbody>';
+
+  const weekStats = {};
+
+  for (const ex of allExercises) {
+    heatHtml += `<tr><td class="hm-name">${ex.name.length > 6 ? ex.name.slice(0, 6) + '…' : ex.name}</td>`;
+    let exWeekCount = 0;
+    let exWeekReps = 0;
+    let exWeekHold = 0;
+
+    for (let i = 0; i < 7; i++) {
+      const dayKey = weekDays[i];
+      const sessions = (data[dayKey] || {})[ex.id] || [];
+      const checked = (() => {
+        try {
+          const ck = JSON.parse(localStorage.getItem(`fitness_check_${dayKey}`) || '{}');
+          return !!ck[ex.id];
+        } catch { return false; }
+      })();
+
+      const count = sessions.length;
+      const reps = sessions.reduce((s, e) => s + (e.totalReps || 0), 0);
+      const hold = sessions.reduce((s, e) => s + (e.holdSeconds || 0), 0);
+
+      exWeekCount += count;
+      exWeekReps += reps;
+      exWeekHold += hold;
+
+      let level = 0;
+      if (checked || count > 0) level = 1;
+      if (count >= 2) level = 2;
+      if (count >= 3) level = 3;
+
+      const isToday = weekDays[i] === store.trainingDay();
+      const tooltip = count > 0
+        ? `${count}次${reps ? ' ' + reps + '次动作' : ''}${hold ? ' ' + hold + '秒' : ''}`
+        : checked ? '已打勾' : '';
+
+      heatHtml += `<td class="hm-cell level-${level} ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
+      if (level > 0) heatHtml += `<span class="hm-dot"></span>`;
+      heatHtml += `</td>`;
+    }
+    heatHtml += '</tr>';
+
+    weekStats[ex.id] = { count: exWeekCount, reps: exWeekReps, hold: exWeekHold, name: ex.name, mode: ex.mode };
+  }
+  heatHtml += '</tbody></table>';
+  $('.stats-heatmap').innerHTML = heatHtml;
+
+  // Weekly summary cards
+  let sumHtml = '<div class="stats-cards">';
+  for (const [id, s] of Object.entries(weekStats)) {
+    if (s.count === 0 && !s.mode) continue;
+    const metric = s.reps > 0 ? `${s.reps} 次` : s.hold > 0 ? `${s.hold} 秒` : '';
+    sumHtml += `
+      <div class="stats-card">
+        <div class="stats-card-name">${s.name}</div>
+        <div class="stats-card-count">${s.count} 次训练</div>
+        ${metric ? `<div class="stats-card-metric">${metric}</div>` : ''}
+      </div>`;
+  }
+  if (Object.values(weekStats).every(s => s.count === 0)) {
+    sumHtml += '<div class="stats-empty">本周暂无训练记录</div>';
+  }
+  sumHtml += '</div>';
+  $('.stats-summary').innerHTML = sumHtml;
+
+  // Day detail: clicking a heatmap cell shows that day's sessions
+  $('.stats-heatmap').querySelectorAll('.hm-cell[data-day]').forEach(cell => {
+    cell.addEventListener('click', () => _renderDayDetail(cell.dataset.day));
+  });
+
+  // Show today's detail by default
+  _renderDayDetail(store.trainingDay());
+}
+
+function _renderDayDetail(day) {
+  const container = $('.stats-day-detail');
+  const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
+  const dayData = data[day] || {};
   const exerciseMap = {};
   for (const ex of exercises) exerciseMap[ex.id] = ex.name;
 
-  let html = '';
-  for (const day of days) {
-    let daySessions = [];
-    const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
-    const dayData = data[day] || {};
+  const weekday = ['日', '一', '二', '三', '四', '五', '六'][new Date(day + 'T12:00:00').getDay()];
+  let html = `<div class="detail-day-title">${day} 周${weekday}</div>`;
 
-    for (const [exId, sessions] of Object.entries(dayData)) {
-      for (const s of sessions) {
-        daySessions.push({ ...s, exId, exName: exerciseMap[exId] || exId });
-      }
+  let sessions = [];
+  for (const [exId, list] of Object.entries(dayData)) {
+    for (const s of list) {
+      sessions.push({ ...s, exId, exName: exerciseMap[exId] || exId });
     }
+  }
+  sessions.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
-    daySessions.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-
-    html += `<div class="history-day">`;
-    html += `<div class="history-day-header">${day}</div>`;
-
-    for (const s of daySessions) {
-      const kindClass = s.sessionKind === '完成' ? 'done' : 'cancelled';
-      const detail = s.totalReps
-        ? `${s.totalReps}次`
-        : s.holdSeconds
-          ? `${s.holdSeconds}秒`
-          : '';
-      const duration = s.durationSeconds
-        ? `${Math.floor(s.durationSeconds / 60)}分${s.durationSeconds % 60}秒`
-        : '';
-
+  if (sessions.length === 0) {
+    html += '<div class="detail-empty">当日无训练记录</div>';
+  } else {
+    for (const s of sessions) {
+      const detail = s.totalReps ? `${s.totalReps}次` : s.holdSeconds ? `${s.holdSeconds}秒` : '';
+      const dm = s.durationSeconds ? `${Math.floor(s.durationSeconds / 60)}分${s.durationSeconds % 60}秒` : '';
+      const kind = s.sessionKind || '完成';
       html += `
-        <div class="history-session">
-          <span class="history-session-time">${s.time || ''}</span>
-          <span class="history-session-name">${s.exName}</span>
-          <span class="history-session-detail">${detail} ${duration}</span>
-          <span class="history-session-kind ${kindClass}">${s.sessionKind || ''}</span>
+        <div class="detail-row">
+          <span class="detail-time">${s.time || ''}</span>
+          <span class="detail-name">${s.exName}</span>
+          <span class="detail-metric">${detail}</span>
+          <span class="detail-dur">${dm}</span>
+          <span class="detail-kind ${kind === '完成' ? 'done' : 'stopped'}">${kind}</span>
         </div>`;
     }
-    html += `</div>`;
   }
-  content.innerHTML = html;
-}
 
-function _closeHistory() {
-  $('.history-panel').style.display = 'none';
+  // Also show checklist items
+  try {
+    const checks = JSON.parse(localStorage.getItem(`fitness_check_${day}`) || '{}');
+    const checkedIds = Object.keys(checks);
+    if (checkedIds.length > 0) {
+      html += '<div class="detail-checks-title">打勾完成</div>';
+      for (const id of checkedIds) {
+        html += `<div class="detail-check-row">✓ ${exerciseMap[id] || id}</div>`;
+      }
+    }
+  } catch {}
+
+  container.innerHTML = html;
 }
 
 // --- Init ---
@@ -329,12 +445,16 @@ export function init() {
     $('.btn-mute').classList.toggle('active', muted);
   });
 
-  // Export button → open history
-  $('.btn-export')?.addEventListener('click', () => _openHistory());
+  // Stats button
+  $('.btn-export')?.addEventListener('click', () => _openStats());
 
-  // History panel controls
-  $('.history-back')?.addEventListener('click', () => _closeHistory());
-  $('.history-export')?.addEventListener('click', () => store.exportCSV());
+  // Stats panel controls
+  $('.stats-back')?.addEventListener('click', () => _closeStats());
+  $('.stats-export')?.addEventListener('click', () => store.exportCSV());
+  $('.stats-prev')?.addEventListener('click', () => { _weekOffset--; _renderStats(); });
+  $('.stats-next')?.addEventListener('click', () => {
+    if (_weekOffset < 0) { _weekOffset++; _renderStats(); }
+  });
 
   // Training overlay controls
   $('.btn-pause').addEventListener('click', () => engine.pause());
