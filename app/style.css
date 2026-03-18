@@ -659,6 +659,37 @@ body {
   border-radius: 3px;
 }
 
+/* Weekly calorie banner */
+.stats-cal-banner {
+  margin: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+}
+.stats-cal-icon { font-size: 28px; }
+.stats-cal-info { flex: 1; min-width: 120px; }
+.stats-cal-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #E65100;
+}
+.stats-cal-equiv {
+  font-size: 12px;
+  color: #BF360C;
+  margin-top: 2px;
+}
+.stats-cal-days {
+  width: 100%;
+  font-size: 11px;
+  color: #BF360C;
+  opacity: 0.7;
+}
+
 /* Category title in summary */
 .stats-cat-title {
   font-size: 14px;

@@ -296,8 +296,7 @@ function _getBodyWeight() {
   return store.getLatestWeight() || 55;
 }
 
-function _calcTodayCalories() {
-  const day = store.trainingDay();
+function _calcDayCalories(day) {
   const weight = _getBodyWeight();
   let total = 0;
   for (const ex of exercises) {
@@ -309,6 +308,10 @@ function _calcTodayCalories() {
     }
   }
   return Math.round(total);
+}
+
+function _calcTodayCalories() {
+  return _calcDayCalories(store.trainingDay());
 }
 
 function _calEquiv(cal) {
@@ -741,8 +744,25 @@ function _renderStats() {
   heatHtml += '</tbody></table>';
   $('.stats-heatmap').innerHTML = heatHtml;
 
+  // Weekly calorie summary
+  let weekCal = 0;
+  const dayCals = [];
+  for (let i = 0; i < 7; i++) {
+    const dc = _calcDayCalories(weekDays[i]);
+    dayCals.push(dc);
+    weekCal += dc;
+  }
+
+  let sumHtml = `<div class="stats-cal-banner">
+    <span class="stats-cal-icon">🔥</span>
+    <div class="stats-cal-info">
+      <div class="stats-cal-total">本周消耗 ${weekCal} kcal</div>
+      <div class="stats-cal-equiv">${_calEquiv(weekCal)}</div>
+    </div>
+    <div class="stats-cal-days">${dayCals.map((c, i) => c > 0 ? `${dayNames[i]} ${c}` : '').filter(Boolean).join(' · ')}</div>
+  </div>`;
+
   // Weekly summary — grouped by category
-  let sumHtml = '';
   for (const [cat, exs] of Object.entries(categories)) {
     const catExStats = exs.map(ex => weekStats[ex.id]).filter(s => s.count > 0);
     if (catExStats.length === 0) continue;
@@ -760,8 +780,8 @@ function _renderStats() {
     }
     sumHtml += '</div>';
   }
-  if (!sumHtml) {
-    sumHtml = '<div class="stats-empty">本周暂无训练记录</div>';
+  if (weekCal === 0 && !Object.values(catStats).some(c => c > 0)) {
+    sumHtml += '<div class="stats-empty">本周暂无训练记录</div>';
   }
   $('.stats-summary').innerHTML = sumHtml;
 
@@ -782,7 +802,9 @@ function _renderDayDetail(day) {
   for (const ex of exercises) exerciseMap[ex.id] = ex.name;
 
   const weekday = ['日', '一', '二', '三', '四', '五', '六'][new Date(day + 'T12:00:00').getDay()];
-  let html = `<div class="detail-day-title">${day} 周${weekday}</div>`;
+  const dayCal = _calcDayCalories(day);
+  const calStr = dayCal > 0 ? ` · 🔥 ${dayCal} kcal` : '';
+  let html = `<div class="detail-day-title">${day} 周${weekday}${calStr}</div>`;
 
   let sessions = [];
   for (const [exId, list] of Object.entries(dayData)) {
