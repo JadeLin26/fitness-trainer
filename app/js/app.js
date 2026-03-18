@@ -97,6 +97,7 @@ function renderList() {
             <div class="ex-detail-inner">
               <div class="ex-desc">${ex.description}</div>
               ${ex.tips ? `<div class="ex-tips">${ex.tips}</div>` : ''}
+              ${ex.alternating ? `<div class="ex-alternating">🔄 奇数组左腿，偶数组右腿（语音会自动提示）</div>` : ''}
               ${params ? `<div class="ex-params">${params}</div>` : ''}
               ${hasVideo ? `<video class="ex-video" src="${ex.video}" controls preload="none" playsinline></video>` : ''}
               <button class="btn-start" data-id="${ex.id}">开始训练</button>
@@ -337,8 +338,9 @@ function _updateTrainingUI(info, ex) {
   }
   else if (info.phase === 'active') {
     numEl.textContent = info.text || info.rep;
+    const sideTag = ex.alternating && info.set ? (info.set % 2 === 1 ? ' · 左腿' : ' · 右腿') : '';
     labelEl.textContent = info.totalSets > 1
-      ? `第${info.set}组 / ${info.totalReps}次`
+      ? `第${info.set}组${sideTag} / ${info.totalReps}次`
       : `${info.rep || 0}/${info.totalReps || 0}`;
     const pct = (info.rep || 0) / (info.totalReps || 1);
     fg.style.strokeDasharray = `${circ}`;
@@ -350,8 +352,9 @@ function _updateTrainingUI(info, ex) {
   }
   else if (info.phase === 'hold') {
     numEl.textContent = info.remaining;
+    const sideTag = ex.alternating && info.set ? (info.set % 2 === 1 ? ' · 左腿' : ' · 右腿') : '';
     labelEl.textContent = info.totalSets > 1
-      ? `第${info.set}组 第${info.rep}次`
+      ? `第${info.set}组${sideTag} 第${info.rep}次`
       : `第${info.rep || 1}次`;
     const pct = info.remaining / info.total;
     fg.style.strokeDasharray = `${circ}`;

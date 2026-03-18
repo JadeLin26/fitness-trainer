@@ -91,6 +91,14 @@ async function _runCountedReps(ex) {
       await _sleep(80);
     }
 
+    // Alternating side announcement
+    if (ex.alternating) {
+      const side = s % 2 === 1 ? '左腿' : '右腿';
+      _emit({ phase: 'active', set: s, totalSets: sets, rep: 0, totalReps: reps, totalDone, text: side });
+      await voice.say(null, null, side);
+      await _sleep(500);
+    }
+
     // Count reps
     for (let r = 1; r <= reps; r++) {
       await _checkCancel();
@@ -150,6 +158,14 @@ async function _runTimedHold(ex) {
       const setKey = `set_${s}`;
       try { await voice.playKey(ex.ttsDir, holdKey, 0); }
       catch { await voice.playKey(ex.ttsDir, setKey, 0).catch(() => {}); }
+    }
+
+    // Alternating side announcement
+    if (ex.alternating) {
+      const side = s % 2 === 1 ? '左腿' : '右腿';
+      _emit({ phase: 'hold', set: s, totalSets: sets, remaining: holdSec, total: holdSec, text: side });
+      await voice.say(null, null, side);
+      await _sleep(500);
     }
 
     // Hold countdown
