@@ -128,6 +128,38 @@ function _renderParams(ex) {
   return parts.map(p => `<span class="ex-param">${p}</span>`).join('');
 }
 
+function _completionRatio(ex, dayReps, dayHold, checked) {
+  if (!ex.mode) return checked ? 1 : 0;
+  const d = ex.defaults;
+  let target, actual;
+  if (ex.mode === 'counted_reps') {
+    target = ex.dailyTarget || (d.sets || 1) * (d.reps || 1);
+    actual = dayReps;
+  } else if (ex.mode === 'timed_hold') {
+    target = (d.sets || 1) * (d.holdSec || 1);
+    actual = dayHold;
+  } else if (ex.mode === 'timed_reps') {
+    target = (d.sets || 1) * (d.repsPerSet || 1);
+    actual = dayReps;
+  } else {
+    return checked ? 1 : 0;
+  }
+  if (target <= 0) return checked ? 1 : 0;
+  return Math.min(actual / target, 1);
+}
+
+function _renderHeatDot(ratio) {
+  if (ratio <= 0) return '';
+  const R = 10;
+  const r = Math.sqrt(ratio) * R;
+  const full = ratio >= 1;
+  const color = full ? '#2E7D32' : '#4CAF50';
+  let svg = `<svg class="hm-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="${r.toFixed(1)}" fill="${color}" opacity="${full ? 1 : 0.7}"/>`;
+  if (full) svg += `<path d="M8 12.5l2.5 2.5 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
+  svg += `</svg>`;
+  return svg;
+}
+
 function _estimateMinutes(ex) {
   if (!ex.mode) return null;
   const d = ex.defaults;
@@ -401,18 +433,14 @@ function _renderStats() {
         exWeekReps += reps;
         exWeekHold += hold;
 
-        let level = 0;
-        if (checked || count > 0) level = 1;
-        if (count >= 2) level = 2;
-        if (count >= 3) level = 3;
-
+        const ratio = _completionRatio(ex, reps, hold, checked);
         const isToday = weekDays[i] === store.trainingDay();
         const tooltip = count > 0
-          ? `${count}次${reps ? ' ' + reps + '次' : ''}${hold ? ' ' + hold + '秒' : ''}`
-          : checked ? '已打勾' : '';
+          ? `${count}次${reps ? ' ' + reps + '次' : ''}${hold ? ' ' + hold + '秒' : ''} (${Math.round(ratio * 100)}%)`
+          : checked ? '已打勾 (100%)' : '';
 
-        heatHtml += `<td class="hm-cell level-${level} ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
-        if (level > 0) heatHtml += `<span class="hm-dot"></span>`;
+        heatHtml += `<td class="hm-cell ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
+        heatHtml += _renderHeatDot(ratio);
         heatHtml += `</td>`;
       }
       heatHtml += '</tr>';

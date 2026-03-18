@@ -483,17 +483,14 @@ body {
   cursor: pointer;
   position: relative;
 }
-.hm-cell.today { background: rgba(0, 122, 255, 0.04); }
-.hm-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
+.hm-cell.today { background: rgba(0, 122, 255, 0.06); }
+.hm-svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin: 0 auto;
   border-radius: 3px;
 }
-.hm-cell.level-0 .hm-dot { display: none; }
-.hm-cell.level-1 .hm-dot { background: #c6e48b; }
-.hm-cell.level-2 .hm-dot { background: #7bc96f; }
-.hm-cell.level-3 .hm-dot { background: #239a3b; }
 
 /* Category title in summary */
 .stats-cat-title {
