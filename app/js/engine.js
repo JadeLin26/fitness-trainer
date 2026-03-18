@@ -122,9 +122,6 @@ async function _runCountedReps(ex) {
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem === Math.floor(rest / 2) && rest >= 20) {
-          voice.sayAsync(ex.ttsDir, ex.ttsMap, ex.ttsMap?.['坚持'] ? '坚持' : '过半了，继续');
-        }
         if (rem <= 5) {
           await voice.playNum(ex.ttsDir, rem, 0);
         }
