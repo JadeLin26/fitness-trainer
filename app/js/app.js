@@ -53,7 +53,7 @@ function renderList() {
             <div class="ex-card-icon ${ex.categoryTag}">${ICONS[ex.categoryTag] || '🏋️'}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
-              <div class="ex-card-sub">${ex.subtitle}</div>
+              <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
             </div>
             <div class="ex-card-status">
               <div class="check-mark ${checked ? 'done' : ''}">✓</div>
@@ -118,6 +118,51 @@ function _renderParams(ex) {
   if (d.tempo) parts.push(`${d.tempo}秒/次`);
   if (d.rest && d.rest > 0) parts.push(`休息${d.rest}秒`);
   return parts.map(p => `<span class="ex-param">${p}</span>`).join('');
+}
+
+function _estimateMinutes(ex) {
+  if (!ex.mode) return null;
+  const d = ex.defaults;
+  let totalSec = (d.prepSec || 5);
+  const sets = d.sets || 1;
+
+  if (ex.mode === 'counted_reps') {
+    const reps = d.reps || 0;
+    const tempo = d.tempo || 2;
+    totalSec += sets * reps * tempo;
+    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+  } else if (ex.mode === 'timed_hold') {
+    totalSec += sets * (d.holdSec || 0);
+    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+  } else if (ex.mode === 'timed_reps') {
+    const repsPerSet = d.repsPerSet || 0;
+    const holdSec = d.holdSec || 0;
+    const restRep = d.restRep || 0;
+    totalSec += sets * (repsPerSet * (holdSec + restRep));
+    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+  }
+
+  return Math.ceil(totalSec / 60);
+}
+
+function _renderCardSummary(ex) {
+  if (!ex.mode) return ex.subtitle;
+  const d = ex.defaults;
+  const parts = [];
+  const sets = d.sets || 1;
+
+  if (ex.mode === 'counted_reps') {
+    parts.push(sets > 1 ? `${sets}组×${d.reps}次` : `${d.reps}次`);
+  } else if (ex.mode === 'timed_hold') {
+    parts.push(sets > 1 ? `${sets}组×${d.holdSec}秒` : `保持${d.holdSec}秒`);
+  } else if (ex.mode === 'timed_reps') {
+    parts.push(sets > 1 ? `${sets}组×${d.repsPerSet}次×${d.holdSec}秒` : `${d.repsPerSet}次×${d.holdSec}秒`);
+  }
+
+  const mins = _estimateMinutes(ex);
+  if (mins) parts.push(`约${mins}分钟`);
+
+  return parts.join(' · ');
 }
 
 function _toggleCard(id) {
