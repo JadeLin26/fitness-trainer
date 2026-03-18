@@ -1,19 +1,26 @@
 # Fitness Trainer PWA
 
-A voice-guided posture correction and hyoid muscle training app — all exercises in one page, no backend required.
+A voice-guided posture correction training app — all exercises in one page, cross-device sync, installable as PWA.
 
-Built for personal use. Runs in any browser, installable as a PWA on phone/tablet/desktop.
+Built for personal use. Runs in any browser on PC / phone / tablet.
+
+## Live
+
+GitHub Pages: `https://jadelin26.github.io/fitness-trainer/`
 
 ## Features
 
-- **8 exercises** across 3 categories: posture correction, hyoid muscle, auxiliary
+- **15 exercises** across 6 categories with per-exercise anatomical icons
 - **Universal training engine** — 3 modes: counted reps, timed hold, timed reps
-- **Voice-guided counting** with pre-generated Qwen3-TTS clips (Chinese, male + female voices)
-- **90 BPM background beat** during active training
-- **Partial session recording** — cancelled sessions still save progress
-- **History panel** with per-day breakdown and CSV export
+- **Voice-guided counting** with pre-generated TTS clips (Chinese) + Web Speech API fallback
+- **Left/right alternating** — automatic voice prompts for exercises that switch legs per set
+- **90 BPM background beat** during Wall Angel training
+- **Cloud sync** via Supabase (PostgreSQL) — localStorage as local layer, REST API for sync
+- **Stats panel** — weekly heatmap, category summaries, per-day session detail, CSV export
+- **Progress tracking** — pie-chart progress rings, completion percentage, daily target support
+- **Grouping modes** — switch between "by body part" and "by scene/position"
 - **PWA** — installable, offline-capable via Service Worker
-- **Responsive** — desktop, tablet, phone (iOS Light Theme)
+- **Responsive** — desktop + mobile (iOS Light Theme)
 
 ## Quick Start
 
@@ -27,16 +34,44 @@ Requires Python 3. No npm, no build step.
 
 ## Exercises
 
-| # | Name | Mode | Sets × Reps/Hold | Rest |
-|---|------|------|-------------------|------|
-| 1 | 靠墙天使 Wall Angel | counted_reps | 3 × 20 @ 1.5s | 30s |
-| 2 | Shaker · 抬头不动 | timed_hold | 3 × 30s | 60s |
-| 3 | Shaker · 连续抬放 | counted_reps | 1 × 30 @ 3s | — |
-| 4 | 下颌推压 | timed_hold | 10 × 10s | 5s |
-| 5 | FESM 前额等长抗阻 | timed_reps | 5 × 10 @ 5s | 15s |
-| 6 | Chin Tuck 收下巴 | timed_reps | 1 × 20 @ 5s | — |
-| 7 | Mewing 舌位训练 | habit | — | — |
-| 8 | 颏下综合训练 | habit | — | — |
+### 头前倾矫正
+| Name | Mode | Sets × Reps/Hold | Daily Target |
+|------|------|-------------------|-------------|
+| 靠墙天使 Wall Angel | counted_reps | 3 × 20 @ 1.5s | 360/day |
+
+### 舌骨肌群
+| Name | Mode | Sets × Reps/Hold |
+|------|------|-------------------|
+| Shaker · 抬头不动 | timed_hold | 3 × 30s |
+| Shaker · 连续抬放 | counted_reps | 1 × 30 @ 3s |
+| 下颌推压 | timed_hold | 10 × 10s |
+| FESM 前额等长抗阻 | timed_reps | 5 × 10 @ 5s |
+
+### 姿势矫正
+| Name | Mode |
+|------|------|
+| Chin Tuck 收下巴 | timed_reps 1 × 20 @ 5s |
+| Mewing 舌位训练 | checklist (habit) |
+
+### 辅助训练
+| Name | Mode |
+|------|------|
+| 颏下综合训练 | checklist |
+
+### 骨盆前倾矫正
+| Name | Mode | Sets × Reps/Hold | Alternating |
+|------|------|-------------------|-------------|
+| 俯卧位腰椎呼吸 | timed_hold | 1 × 120s | — |
+| 仰卧屈膝骨盆后倾 | counted_reps | 1 × 15 @ 3s | — |
+| 单膝跪位髋伸展 | timed_hold | 6 × 15s | ✓ L/R |
+| 仰卧单腿下落 | counted_reps | 6 × 10 @ 3s | ✓ L/R |
+| 单腿臀桥 | counted_reps | 6 × 15 @ 2s | ✓ L/R |
+| 简化版单腿硬拉 | counted_reps | 6 × 15 @ 3s | ✓ L/R |
+
+### 圆肩驼背矫正
+| Name | Mode | Duration |
+|------|------|----------|
+| 弹力带练背 | checklist | ~20 min |
 
 ## Project Structure
 
@@ -44,19 +79,20 @@ Requires Python 3. No npm, no build step.
 fitness-trainer/
 ├── app/
 │   ├── index.html            # Entry point
-│   ├── style.css             # iOS Light Theme
+│   ├── style.css             # iOS Light Theme, responsive
 │   ├── manifest.json         # PWA manifest
 │   ├── sw.js                 # Service Worker (offline cache)
-│   ├── icons/
+│   ├── icons/                # Per-exercise anatomical PNG icons (128×128)
 │   └── js/
-│       ├── app.js            # UI + routing
-│       ├── engine.js         # Training state machine
-│       ├── exercises.js      # Exercise config registry
-│       ├── store.js          # localStorage persistence
-│       ├── voice.js          # Web Audio playback + silence trimming
-│       └── bgm.js            # Background beat generator
+│       ├── app.js            # UI rendering, stats panel, event handling
+│       ├── engine.js         # Training state machine (prep → active → rest → done)
+│       ├── exercises.js      # Exercise config registry (all 15 exercises)
+│       ├── store.js          # localStorage + Supabase REST API sync
+│       ├── voice.js          # Web Audio playback + silence trimming + TTS fallback
+│       └── bgm.js            # Background beat generator (Web Audio oscillator)
 ├── trainer_tts/              # Wall Angel TTS clips (male voice)
-├── hyoid_tts/                # Hyoid exercise TTS clips (female voice)
+├── hyoid_tts/                # Hyoid/general exercise TTS clips (female voice)
+├── videos/                   # Exercise demo videos
 ├── serve.py                  # Dev server (port 8766)
 ├── DEPLOY.md                 # Deployment guide
 └── .gitignore
@@ -64,31 +100,36 @@ fitness-trainer/
 
 ## Architecture
 
-**Training Engine** (`engine.js`) is a state machine with phases:
-
+**Training Engine** (`engine.js`) — state machine:
 ```
 idle → prep → active → rest → (repeat sets) → done
 ```
+Supports 3 modes: `counted_reps`, `timed_hold`, `timed_reps`. Handles left/right alternating via `alternating` property. Each exercise is a config object — the engine is mode-driven, not exercise-specific.
 
-Each exercise is a config object in `exercises.js`. The engine reads the config and drives the entire session — voice cues, timers, rep counting, rest periods — without exercise-specific code.
+**Exercise Config** (`exercises.js`) — each exercise defines: id, name, category, scene, mode, defaults (sets/reps/hold/tempo/rest), TTS directory, alternating flag, daily target, video references.
 
-**Voice System** (`voice.js`) loads pre-generated WAV files from `trainer_tts/` and `hyoid_tts/`, with automatic silence trimming for number clips. Falls back to Web Speech API if WAV files are unavailable.
+**Voice System** (`voice.js`) — loads WAV files from TTS directories with automatic silence trimming. Falls back to Web Speech API for phrases without pre-recorded clips (e.g. "左腿"/"右腿").
 
-**Data** is stored in `localStorage`, keyed by date. Each session records sets, reps, hold time, duration, and whether it completed or was cancelled.
+**Data Layer** (`store.js`) — localStorage as primary store, Supabase PostgreSQL as cloud sync. Uses native `fetch()` against Supabase REST API (zero SDK dependency).
+
+**Stats Panel** — weekly heatmap with area-based completion visualization, category-grouped summaries, per-day session detail log, CSV export.
 
 ## Deployment
 
-See [DEPLOY.md](DEPLOY.md) for full instructions.
+- **Hosting**: GitHub Pages (public repo, free)
+- **Database**: Supabase free tier (PostgreSQL + REST API)
+- **Domain**: `jadelin26.github.io/fitness-trainer/`
 
-**Short version:** Cloudflare Pages (free) for the app, Cloudflare R2 (free tier) for video assets, optional Supabase for cross-device sync.
+See [DEPLOY.md](DEPLOY.md) for setup details.
 
 ## Tech Stack
 
 - Vanilla JS (ES Modules) — zero dependencies, no build
-- Web Audio API — voice playback
+- Web Audio API — voice playback + BGM generation
 - Web Speech API — TTS fallback
-- localStorage — offline-first data
+- localStorage + Supabase REST — offline-first with cloud sync
 - Service Worker — cache-first strategy
+- CSS custom properties — iOS Light Theme
 
 ## License
 
