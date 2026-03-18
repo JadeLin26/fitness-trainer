@@ -281,6 +281,43 @@ function _renderCheckRing(pct) {
   return `<span class="ring-pct yellow">${Math.round(pct * 100)}%</span><div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"></div>`;
 }
 
+const EX_MET = {
+  'wall_angel': 3.0,
+  'shaker_iso': 2.5, 'shaker_dyn': 3.0,
+  'subman_push': 2.0, 'fesm': 2.0,
+  'chin_tuck': 2.0, 'mewing': 1.0, 'jawline': 2.0,
+  'pelvic_breath': 1.5, 'pelvic_tilt': 3.0,
+  'hip_flexor_stretch': 2.5,
+  'single_leg_lower': 3.5, 'single_glute_bridge': 4.0,
+  'single_leg_deadlift': 4.0,
+  'band_back': 3.5,
+};
+const BODY_WEIGHT_KG = 65;
+
+function _calcTodayCalories() {
+  const day = store.trainingDay();
+  let total = 0;
+  for (const ex of exercises) {
+    const sessions = store.getDaySessions(ex.id, day);
+    for (const s of sessions) {
+      const met = EX_MET[ex.id] || 2.5;
+      const mins = (s.durationSeconds || 0) / 60;
+      total += met * BODY_WEIGHT_KG * 3.5 / 200 * mins;
+    }
+  }
+  return Math.round(total);
+}
+
+function _calEquiv(cal) {
+  if (cal <= 0) return '';
+  if (cal < 8) return `≈ 走了 ${Math.round(cal * 25)} 步`;
+  if (cal < 20) return `≈ 步行 ${Math.round(cal / 4 * 100)}m`;
+  if (cal < 50) return `≈ ${(cal / 50).toFixed(1)} 个水煮蛋`;
+  if (cal < 100) return `≈ ${(cal / 86).toFixed(1)} 杯拿铁`;
+  if (cal < 200) return `≈ ${(cal / 232).toFixed(1)} 碗米饭`;
+  return `≈ ${(cal / 232).toFixed(1)} 碗米饭 💪`;
+}
+
 function _updateProgressSummary() {
   const day = store.trainingDay();
   const dailyExs = getDailyExercises();
@@ -302,8 +339,11 @@ function _updateProgressSummary() {
     fg.style.strokeDashoffset = `${offset}`;
   }
 
-  const waEl = $('.wa-progress');
-  if (waEl) waEl.textContent = '';
+  const cal = _calcTodayCalories();
+  const calEl = $('.cal-number');
+  const equivEl = $('.cal-equiv');
+  if (calEl) calEl.textContent = `🔥 ${cal} kcal`;
+  if (equivEl) equivEl.textContent = _calEquiv(cal);
 }
 
 // --- Training overlay ---
