@@ -439,10 +439,7 @@ body {
 .heatmap-table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
 }
-.hm-col-name { /* auto: takes all remaining space */ }
-.hm-col-day { width: 28px; }
 .heatmap-table th {
   font-size: 10px;
   font-weight: 500;

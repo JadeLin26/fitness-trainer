@@ -397,7 +397,7 @@ function _renderStats() {
   }
 
   // Heatmap header
-  let heatHtml = '<table class="heatmap-table"><colgroup><col class="hm-col-name">' + '<col class="hm-col-day">'.repeat(7) + '</colgroup><thead><tr><th></th>';
+  let heatHtml = '<table class="heatmap-table"><thead><tr><th></th>';
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDays[i].slice(8);
     const isToday = weekDays[i] === store.trainingDay();
