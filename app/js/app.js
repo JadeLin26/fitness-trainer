@@ -256,13 +256,13 @@ function _exProgress(ex, day) {
 
 function _renderCheckRing(pct) {
   if (pct >= 1) {
-    return `<div class="check-ring full">✓</div>`;
+    return `<span class="ring-pct green">100%</span><div class="check-ring full">✓</div>`;
   }
   if (pct <= 0) {
-    return `<div class="check-ring"></div>`;
+    return `<span class="ring-pct red">0%</span><div class="check-ring"></div>`;
   }
   const deg = Math.round(pct * 360);
-  return `<span class="ring-pct">${Math.round(pct * 100)}%</span><div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"></div>`;
+  return `<span class="ring-pct yellow">${Math.round(pct * 100)}%</span><div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"></div>`;
 }
 
 function _updateProgressSummary() {
