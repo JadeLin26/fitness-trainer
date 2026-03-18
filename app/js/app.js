@@ -46,7 +46,7 @@ function renderList() {
             </div>
             <div class="ex-card-status">
               <div class="check-mark ${checked ? 'done' : ''}">✓</div>
-              ${ex.mode ? '<span class="expand-arrow">›</span>' : ''}
+              <span class="expand-arrow">›</span>
             </div>
           </div>
           ${ex.mode ? `
@@ -62,8 +62,9 @@ function renderList() {
           <div class="ex-card-detail">
             <div class="ex-detail-inner">
               <div class="ex-desc">${ex.description}</div>
-              ${ex.tips ? `<div class="ex-tips">${ex.tips}</div>` : ''}
-              <button class="btn-start" data-id="${ex.id}" onclick="alert('这是全天习惯训练，无需计时。')" style="background:var(--text3)">习惯养成 · 无需计时</button>
+              ${ex.tips ? `<div class="ex-tips">${ex.tips.replace(/\n/g, '<br>')}</div>` : ''}
+              ${ex.externalVideo ? `<a class="btn-video-link" href="${ex.externalVideo}" target="_blank" rel="noopener">📺 打开跟练视频</a>` : ''}
+              <button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>
             </div>
           </div>`}
         </div>`;
@@ -83,6 +84,13 @@ function renderList() {
         _startTraining(ex);
       });
     }
+  });
+  list.querySelectorAll('.btn-check[data-id]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      store.markChecked(btn.dataset.id, store.trainingDay());
+      renderList();
+    });
   });
 
   _updateProgressSummary();

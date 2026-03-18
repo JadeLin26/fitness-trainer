@@ -462,6 +462,36 @@ body {
   font-size: 15px;
 }
 
+/* Check button (habit exercises) */
+.btn-check {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.btn-check:active { opacity: 0.8; }
+
+/* External video link */
+.btn-video-link {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f0f0f5;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 8px;
+}
+.btn-video-link:active { opacity: 0.7; }
+
 /* Responsive */
 @media (max-width: 600px) {
   .header { padding: 28px 16px 10px; }

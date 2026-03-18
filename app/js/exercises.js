@@ -156,6 +156,23 @@ export const exercises = [
     video: '../videos/jawline.mp4',
     images: [],
   },
+  {
+    id: 'band_back',
+    name: '弹力带练背',
+    subtitle: '圆肩驼背矫正 · 约20分钟',
+    category: '圆肩驼背矫正',
+    categoryTag: 'posture',
+    description: '弹力带背部+肩后束训练，改善圆肩驼背。跟练视频约20分钟，一次打勾代表全套完成。',
+    tips: '① 胸小肌拉伸（热身）\n② 肩关节环绕（热身）\n③ 弹力带飞鸟 × 4组\n④ 窄距高位下拉 × 4组\n⑤ 宽距坐姿划船 × 4组\n⑥ 绳索面拉 × 4组\n⑦ 背部拉伸（放松）',
+    mode: null,
+    defaults: {},
+    ttsDir: null,
+    ttsMap: null,
+    hasBGM: false,
+    video: null,
+    externalVideo: 'https://www.xiaohongshu.com/discovery/item/67d7cd85000000000b03a6c7',
+    images: [],
+  },
 ];
 
 export function getExercise(id) {
