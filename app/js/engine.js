@@ -94,8 +94,9 @@ async function _runCountedReps(ex) {
     // Alternating side announcement
     if (ex.alternating) {
       const side = s % 2 === 1 ? '左腿' : '右腿';
+      const sideKey = s % 2 === 1 ? 'left_leg' : 'right_leg';
       _emit({ phase: 'active', set: s, totalSets: sets, rep: 0, totalReps: reps, totalDone, text: side });
-      await voice.say(null, null, side);
+      await voice.playKey('../hyoid_tts', sideKey, 0).catch(() => voice.say(null, null, side));
       await _sleep(500);
     }
 
@@ -163,8 +164,9 @@ async function _runTimedHold(ex) {
     // Alternating side announcement
     if (ex.alternating) {
       const side = s % 2 === 1 ? '左腿' : '右腿';
+      const sideKey = s % 2 === 1 ? 'left_leg' : 'right_leg';
       _emit({ phase: 'hold', set: s, totalSets: sets, remaining: holdSec, total: holdSec, text: side });
-      await voice.say(null, null, side);
+      await voice.playKey('../hyoid_tts', sideKey, 0).catch(() => voice.say(null, null, side));
       await _sleep(500);
     }
 
@@ -229,8 +231,8 @@ async function _runTimedReps(ex) {
         remaining: holdSec, total: holdSec, text: `第${r}次 保持`,
       });
 
-      // Announce rep number
-      if (r <= 30) voice.sayAsync(ex.ttsDir, null, String(r));
+      // Announce rep number using pre-recorded WAV
+      if (r <= 30) voice.playNum(ex.ttsDir, r, 0).catch(() => {});
 
       // Hold
       for (let rem = holdSec; rem >= 1; rem--) {
