@@ -175,6 +175,7 @@ function _renderHeatDot(ratio) {
 }
 
 function _estimateMinutes(ex) {
+  if (ex.estimatedMinutes) return ex.estimatedMinutes;
   if (!ex.mode) return null;
   const d = ex.defaults;
   let totalSec = (d.prepSec || 5);
