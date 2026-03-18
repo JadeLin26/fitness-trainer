@@ -609,6 +609,38 @@ body {
   color: #2E7D32;
 }
 
+/* Group toggle */
+.group-toggle {
+  display: flex;
+  gap: 0;
+  margin: 0 20px 12px;
+  max-width: 560px;
+  background: #f0f0f5;
+  border-radius: 10px;
+  padding: 3px;
+}
+.group-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.group-btn.active {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 768px) {
+  .group-toggle { margin: 0 auto 12px; max-width: 560px; }
+}
+
 /* Check button (habit exercises) */
 .btn-check {
   width: 100%;

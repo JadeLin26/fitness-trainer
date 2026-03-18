@@ -15,20 +15,31 @@ const ICONS = {
 };
 
 let _expandedId = null;
+let _groupMode = 'category'; // 'category' or 'scene'
 
 // --- Render exercise list ---
 function renderList() {
   const list = $('.exercise-list');
   const day = store.trainingDay();
-  const categories = {};
 
+  const groups = {};
+  const groupKey = _groupMode === 'scene' ? 'scene' : 'category';
   for (const ex of exercises) {
-    if (!categories[ex.category]) categories[ex.category] = [];
-    categories[ex.category].push(ex);
+    const key = ex[groupKey] || '其他';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(ex);
   }
 
+  // Scene mode: define a logical order
+  const sceneOrder = ['仰卧', '俯卧 · 趴着', '跪姿 · 地面', '站立 · 靠墙', '站立', '坐姿 · 随时', '跟练视频'];
+  const sortedKeys = _groupMode === 'scene'
+    ? [...new Set([...sceneOrder.filter(k => groups[k]), ...Object.keys(groups)])]
+    : Object.keys(groups);
+
   let html = '';
-  for (const [cat, exs] of Object.entries(categories)) {
+  for (const cat of sortedKeys) {
+    const exs = groups[cat];
+    if (!exs) continue;
     html += `<div class="category-header">${cat}</div>`;
     for (const ex of exs) {
       const checked = store.isChecked(ex.id, day);
@@ -460,6 +471,15 @@ export function init() {
     voice.setMuted(muted);
     $('.btn-mute').textContent = muted ? '🔇' : '🔊';
     $('.btn-mute').classList.toggle('active', muted);
+  });
+
+  // Group toggle
+  $$('.group-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _groupMode = btn.dataset.group;
+      $$('.group-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderList();
+    });
   });
 
   // Stats button
