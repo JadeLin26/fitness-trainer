@@ -445,9 +445,11 @@ body {
   padding: 0 16px;
 }
 .heatmap-table {
-  width: 80%;
-  margin: 0 auto;
+  width: 100%;
   border-collapse: collapse;
+}
+@media (min-width: 600px) {
+  .heatmap-table { width: 80%; margin: 0 auto; }
 }
 .heatmap-table th {
   font-size: 10px;
@@ -707,6 +709,12 @@ body {
   .ex-card-header { min-height: 56px; }
   .btn-start { min-height: 48px; }
   .training-header { padding: calc(24px + env(safe-area-inset-top)) 16px 8px; }
+  .stats-heatmap { padding: 0 8px; }
+  .hm-name { font-size: 11px; padding-right: 4px; }
+  .heatmap-table th { font-size: 9px; padding: 2px 0; }
+  .hm-date { font-size: 9px; }
+  .hm-svg { width: 16px; height: 16px; }
+  .hm-full { min-height: 18px; font-size: 11px; }
 }
 
 @media (min-width: 768px) {
