@@ -1,6 +1,6 @@
 // Main app — renders exercise list, handles UI interactions, drives training overlay.
 
-import { exercises, getExercise, getTrainableExercises } from './exercises.js';
+import { exercises, getExercise, getTrainableExercises, getDailyExercises } from './exercises.js';
 import * as engine from './engine.js';
 import * as store from './store.js';
 import * as voice from './voice.js';
@@ -117,12 +117,12 @@ function _toggleCard(id) {
 // --- Progress summary ---
 function _updateProgressSummary() {
   const day = store.trainingDay();
-  const trainable = getTrainableExercises();
+  const dailyExs = getDailyExercises();
   let done = 0;
-  for (const ex of trainable) {
+  for (const ex of dailyExs) {
     if (store.isChecked(ex.id, day)) done++;
   }
-  const total = trainable.length;
+  const total = dailyExs.length;
   const pct = total ? Math.round(done / total * 100) : 0;
 
   $('.progress-value').textContent = `${done}/${total}`;
@@ -293,7 +293,14 @@ function _renderStats() {
 
   $('.stats-week-label').textContent = _getWeekLabel(_weekOffset);
 
-  // Heatmap: 7 columns (days) × exercise rows
+  // Group exercises by category
+  const categories = {};
+  for (const ex of allExercises) {
+    if (!categories[ex.category]) categories[ex.category] = [];
+    categories[ex.category].push(ex);
+  }
+
+  // Heatmap header
   let heatHtml = '<table class="heatmap-table"><thead><tr><th></th>';
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDays[i].slice(8);
@@ -303,68 +310,78 @@ function _renderStats() {
   heatHtml += '</tr></thead><tbody>';
 
   const weekStats = {};
+  const catStats = {};
 
-  for (const ex of allExercises) {
-    heatHtml += `<tr><td class="hm-name">${ex.name.length > 6 ? ex.name.slice(0, 6) + '…' : ex.name}</td>`;
-    let exWeekCount = 0;
-    let exWeekReps = 0;
-    let exWeekHold = 0;
+  for (const [cat, exs] of Object.entries(categories)) {
+    heatHtml += `<tr class="hm-cat-row"><td colspan="8" class="hm-cat">${cat}</td></tr>`;
+    let catCount = 0;
 
-    for (let i = 0; i < 7; i++) {
-      const dayKey = weekDays[i];
-      const sessions = (data[dayKey] || {})[ex.id] || [];
-      const checked = (() => {
-        try {
-          const ck = JSON.parse(localStorage.getItem(`fitness_check_${dayKey}`) || '{}');
-          return !!ck[ex.id];
-        } catch { return false; }
-      })();
+    for (const ex of exs) {
+      const shortName = ex.name.length > 6 ? ex.name.slice(0, 6) + '…' : ex.name;
+      heatHtml += `<tr><td class="hm-name">${shortName}</td>`;
+      let exWeekCount = 0, exWeekReps = 0, exWeekHold = 0;
 
-      const count = sessions.length;
-      const reps = sessions.reduce((s, e) => s + (e.totalReps || 0), 0);
-      const hold = sessions.reduce((s, e) => s + (e.holdSeconds || 0), 0);
+      for (let i = 0; i < 7; i++) {
+        const dayKey = weekDays[i];
+        const sessions = (data[dayKey] || {})[ex.id] || [];
+        const checked = (() => {
+          try {
+            return !!JSON.parse(localStorage.getItem(`fitness_check_${dayKey}`) || '{}')[ex.id];
+          } catch { return false; }
+        })();
 
-      exWeekCount += count;
-      exWeekReps += reps;
-      exWeekHold += hold;
+        const count = sessions.length;
+        const reps = sessions.reduce((s, e) => s + (e.totalReps || 0), 0);
+        const hold = sessions.reduce((s, e) => s + (e.holdSeconds || 0), 0);
+        exWeekCount += count;
+        exWeekReps += reps;
+        exWeekHold += hold;
 
-      let level = 0;
-      if (checked || count > 0) level = 1;
-      if (count >= 2) level = 2;
-      if (count >= 3) level = 3;
+        let level = 0;
+        if (checked || count > 0) level = 1;
+        if (count >= 2) level = 2;
+        if (count >= 3) level = 3;
 
-      const isToday = weekDays[i] === store.trainingDay();
-      const tooltip = count > 0
-        ? `${count}次${reps ? ' ' + reps + '次动作' : ''}${hold ? ' ' + hold + '秒' : ''}`
-        : checked ? '已打勾' : '';
+        const isToday = weekDays[i] === store.trainingDay();
+        const tooltip = count > 0
+          ? `${count}次${reps ? ' ' + reps + '次' : ''}${hold ? ' ' + hold + '秒' : ''}`
+          : checked ? '已打勾' : '';
 
-      heatHtml += `<td class="hm-cell level-${level} ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
-      if (level > 0) heatHtml += `<span class="hm-dot"></span>`;
-      heatHtml += `</td>`;
+        heatHtml += `<td class="hm-cell level-${level} ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
+        if (level > 0) heatHtml += `<span class="hm-dot"></span>`;
+        heatHtml += `</td>`;
+      }
+      heatHtml += '</tr>';
+      catCount += exWeekCount;
+      weekStats[ex.id] = { count: exWeekCount, reps: exWeekReps, hold: exWeekHold, name: ex.name, mode: ex.mode, category: cat };
     }
-    heatHtml += '</tr>';
-
-    weekStats[ex.id] = { count: exWeekCount, reps: exWeekReps, hold: exWeekHold, name: ex.name, mode: ex.mode };
+    catStats[cat] = catCount;
   }
   heatHtml += '</tbody></table>';
   $('.stats-heatmap').innerHTML = heatHtml;
 
-  // Weekly summary cards
-  let sumHtml = '<div class="stats-cards">';
-  for (const [id, s] of Object.entries(weekStats)) {
-    if (s.count === 0 && !s.mode) continue;
-    const metric = s.reps > 0 ? `${s.reps} 次` : s.hold > 0 ? `${s.hold} 秒` : '';
-    sumHtml += `
-      <div class="stats-card">
-        <div class="stats-card-name">${s.name}</div>
-        <div class="stats-card-count">${s.count} 次训练</div>
-        ${metric ? `<div class="stats-card-metric">${metric}</div>` : ''}
-      </div>`;
+  // Weekly summary — grouped by category
+  let sumHtml = '';
+  for (const [cat, exs] of Object.entries(categories)) {
+    const catExStats = exs.map(ex => weekStats[ex.id]).filter(s => s.count > 0);
+    if (catExStats.length === 0) continue;
+
+    sumHtml += `<div class="stats-cat-title">${cat} · 本周 ${catStats[cat]} 次</div>`;
+    sumHtml += '<div class="stats-cards">';
+    for (const s of catExStats) {
+      const metric = s.reps > 0 ? `${s.reps} 次` : s.hold > 0 ? `${s.hold} 秒` : '';
+      sumHtml += `
+        <div class="stats-card">
+          <div class="stats-card-name">${s.name}</div>
+          <div class="stats-card-count">${s.count} 次训练</div>
+          ${metric ? `<div class="stats-card-metric">${metric}</div>` : ''}
+        </div>`;
+    }
+    sumHtml += '</div>';
   }
-  if (Object.values(weekStats).every(s => s.count === 0)) {
-    sumHtml += '<div class="stats-empty">本周暂无训练记录</div>';
+  if (!sumHtml) {
+    sumHtml = '<div class="stats-empty">本周暂无训练记录</div>';
   }
-  sumHtml += '</div>';
   $('.stats-summary').innerHTML = sumHtml;
 
   // Day detail: clicking a heatmap cell shows that day's sessions
