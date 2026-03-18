@@ -18,6 +18,12 @@ const CAT_ICON_FILES = {
 };
 
 const EX_ICON_FILES = {
+  'shaker_iso': 'icons/icon_suprahyoid.png',
+  'shaker_dyn': 'icons/icon_suprahyoid.png',
+  'subman_push': 'icons/icon_submental.png',
+  'fesm': 'icons/icon_geniohyoid.png',
+  'chin_tuck': 'icons/icon_deep_neck.png',
+  'mewing': 'icons/icon_tongue.png',
   'pelvic_breath': 'icons/icon_pelvic_breath.png',
   'pelvic_tilt': 'icons/icon_pelvic_tilt.png',
   'hip_flexor_stretch': 'icons/icon_hip_flexor.png',
