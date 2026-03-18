@@ -443,8 +443,6 @@ body {
 /* Heatmap table */
 .stats-heatmap {
   padding: 0 16px;
-  max-width: 560px;
-  margin: 0 auto;
   overflow-x: auto;
 }
 .heatmap-table {
