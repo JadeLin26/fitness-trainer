@@ -103,6 +103,7 @@ function renderList() {
             <div class="ex-detail-inner">
               <div class="ex-desc">${ex.description}</div>
               ${ex.tips ? `<div class="ex-tips">${ex.tips}</div>` : ''}
+              ${ex.details ? `<div class="ex-details">${ex.details}</div>` : ''}
               ${ex.alternating ? `<div class="ex-alternating">🔄 奇数组左腿，偶数组右腿（语音会自动提示）</div>` : ''}
               ${params ? `<div class="ex-params">${params}</div>` : ''}
               ${hasVideo ? `<video class="ex-video" src="${ex.video}" controls preload="none" playsinline></video>` : ''}
@@ -113,6 +114,7 @@ function renderList() {
             <div class="ex-detail-inner">
               <div class="ex-desc">${ex.description}</div>
               ${ex.tips ? `<div class="ex-tips">${ex.tips.replace(/\n/g, '<br>')}</div>` : ''}
+              ${ex.details ? `<div class="ex-details">${ex.details.replace(/\n/g, '<br>')}</div>` : ''}
               ${ex.externalVideo ? `<a class="btn-video-link" href="${ex.externalVideo}" target="_blank" rel="noopener">📺 打开跟练视频</a>` : ''}
               <button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>
             </div>
