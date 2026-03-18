@@ -8,11 +8,19 @@ import * as voice from './voice.js';
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 
-const ICONS = {
-  posture: '🧍',
-  hyoid: '🫁',
-  auxiliary: '💪',
+// SVG icons by category — simple anatomical line drawings
+const CAT_ICONS = {
+  '头前倾矫正': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="8" r="5"/><path d="M13 13c-2 2-3 5-3 8"/><path d="M15 27v-6"/><path d="M23 12c1 2 1 5 0 8"/><path d="M10 7l5 1" stroke-dasharray="2 2" opacity=".5"/></svg>`,
+  '舌骨肌群': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="8" r="5"/><path d="M16 13v4"/><path d="M12 15c0 3 2 5 4 5s4-2 4-5"/><path d="M14 18h4" stroke="var(--accent)" stroke-width="2"/><path d="M11 24c1 2 3 3 5 3s4-1 5-3"/></svg>`,
+  '姿势矫正': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="5" r="3.5"/><path d="M16 9v10"/><path d="M10 13l6 1 6-1"/><path d="M12 28l4-9 4 9"/></svg>`,
+  '辅助训练': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="6" r="3.5"/><path d="M16 10v8"/><path d="M10 14h12"/><path d="M12 28l4-10 4 10"/><path d="M8 14v4h2v-4M22 14v4h2v-4"/></svg>`,
+  '骨盆前倾矫正': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 10c2-3 10-3 12 0"/><path d="M10 10c-2 4-2 8 1 12"/><path d="M22 10c2 4 2 8-1 12"/><path d="M16 10v12"/><ellipse cx="16" cy="16" rx="6" ry="4" stroke-dasharray="2 2" opacity=".4"/><path d="M13 24l-2 6M19 24l2 6"/></svg>`,
+  '圆肩驼背矫正': `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="5" r="3.5"/><path d="M16 9v6"/><path d="M8 11c2 3 4 4 8 4s6-1 8-4"/><path d="M8 11v5M24 11v5"/><path d="M10 16l-2 0M22 16l2 0"/><path d="M12 28l4-13 4 13"/></svg>`,
 };
+
+function _getCatIcon(category) {
+  return CAT_ICONS[category] || CAT_ICONS['辅助训练'];
+}
 
 let _expandedId = null;
 let _groupMode = 'category'; // 'category' or 'scene'
@@ -50,7 +58,7 @@ function renderList() {
       html += `
         <div class="ex-card ${expanded ? 'expanded' : ''}" data-id="${ex.id}">
           <div class="ex-card-header" data-id="${ex.id}" role="button" tabindex="0" aria-expanded="${expanded}">
-            <div class="ex-card-icon ${ex.categoryTag}">${ICONS[ex.categoryTag] || '🏋️'}</div>
+            <div class="ex-card-icon">${_getCatIcon(ex.category)}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
               <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
