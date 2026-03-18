@@ -159,6 +159,39 @@ export function exportCSV() {
   a.click();
 }
 
+// --- Weight tracking ---
+const WEIGHT_KEY = 'fitness_weight_log';
+const PROFILE = { heightCm: 163, age: 28, sex: 'female' };
+
+function _loadWeights() {
+  try { return JSON.parse(localStorage.getItem(WEIGHT_KEY)) || []; }
+  catch { return []; }
+}
+
+export function recordWeight(kg) {
+  const log = _loadWeights();
+  log.push({ kg, ts: new Date().toISOString() });
+  localStorage.setItem(WEIGHT_KEY, JSON.stringify(log));
+}
+
+export function getWeightLog() {
+  return _loadWeights();
+}
+
+export function getLatestWeight() {
+  const log = _loadWeights();
+  return log.length ? log[log.length - 1].kg : null;
+}
+
+export function calcBMI(kg) {
+  const hm = PROFILE.heightCm / 100;
+  return kg / (hm * hm);
+}
+
+export function getProfile() {
+  return PROFILE;
+}
+
 export async function syncFromCloud() {
   try {
     const res = await fetch(`${SB_URL}/training_sessions?order=created_at.asc`, {

@@ -421,6 +421,110 @@ body {
 }
 
 /* ===== Stats Panel ===== */
+/* Weight panel */
+.weight-panel {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 900;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.weight-input-area {
+  padding: 20px;
+}
+.weight-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.weight-input {
+  flex: 1;
+  max-width: 160px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  background: var(--card);
+}
+.weight-input:focus { border-color: var(--accent); }
+.weight-unit {
+  font-size: 16px;
+  color: var(--text2);
+  font-weight: 600;
+}
+.weight-save {
+  padding: 10px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.weight-save:active { opacity: 0.8; }
+.weight-bmi-display {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text1);
+}
+.bmi-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.bmi-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+.weight-chart-container {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+.weight-chart {
+  width: 100%;
+  height: 200px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.weight-history {
+  padding: 0 20px 40px;
+}
+.wh-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.wh-kg { font-weight: 700; font-size: 16px; }
+.wh-time { color: var(--text2); font-size: 12px; }
+.wh-del {
+  background: none;
+  border: none;
+  color: #E53935;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
 .stats-panel {
   position: fixed;
   inset: 0;

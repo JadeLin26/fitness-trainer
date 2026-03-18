@@ -292,17 +292,20 @@ const EX_MET = {
   'single_leg_deadlift': 4.0,
   'band_back': 3.5,
 };
-const BODY_WEIGHT_KG = 65;
+function _getBodyWeight() {
+  return store.getLatestWeight() || 55;
+}
 
 function _calcTodayCalories() {
   const day = store.trainingDay();
+  const weight = _getBodyWeight();
   let total = 0;
   for (const ex of exercises) {
     const sessions = store.getDaySessions(ex.id, day);
     for (const s of sessions) {
       const met = EX_MET[ex.id] || 2.5;
       const mins = (s.durationSeconds || 0) / 60;
-      total += met * BODY_WEIGHT_KG * 3.5 / 200 * mins;
+      total += met * weight * 3.5 / 200 * mins;
     }
   }
   return Math.round(total);
@@ -489,6 +492,185 @@ function _closeStats() {
   _weekOffset = 0;
 }
 
+// --- Weight panel ---
+function _openWeight() {
+  $('.weight-panel').style.display = '';
+  document.body.style.overflow = 'hidden';
+  const latest = store.getLatestWeight();
+  if (latest) $('.weight-input').value = latest;
+  _renderWeightPage();
+}
+
+function _closeWeight() {
+  $('.weight-panel').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function _saveWeight() {
+  const input = $('.weight-input');
+  const kg = parseFloat(input.value);
+  if (!kg || kg < 30 || kg > 200) return;
+  store.recordWeight(kg);
+  _renderWeightPage();
+  _updateProgressSummary();
+}
+
+function _bmiCategory(bmi) {
+  if (bmi < 18.5) return { label: '偏瘦', color: '#42A5F5' };
+  if (bmi < 24) return { label: '正常', color: '#4CAF50' };
+  if (bmi < 28) return { label: '偏胖', color: '#FFA726' };
+  return { label: '肥胖', color: '#E53935' };
+}
+
+function _renderWeightPage() {
+  const log = store.getWeightLog();
+  const bmiEl = $('.weight-bmi-display');
+
+  if (log.length === 0) {
+    bmiEl.innerHTML = '<div style="color:var(--text2)">还没有体重记录，输入体重开始追踪</div>';
+  } else {
+    const latest = log[log.length - 1];
+    const bmi = store.calcBMI(latest.kg);
+    const cat = _bmiCategory(bmi);
+    const first = log[0];
+    const diff = latest.kg - first.kg;
+    const diffStr = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+    const diffColor = diff > 0 ? '#E53935' : diff < 0 ? '#4CAF50' : 'var(--text2)';
+
+    bmiEl.innerHTML = `
+      <div style="margin-bottom:8px">
+        <span class="bmi-value">${bmi.toFixed(1)}</span>
+        <span class="bmi-tag" style="background:${cat.color}">${cat.label}</span>
+        <span style="font-size:13px;color:var(--text2);margin-left:8px">BMI</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2)">
+        当前 <strong style="color:var(--text1)">${latest.kg} kg</strong>
+        ${log.length > 1 ? `· 累计 <strong style="color:${diffColor}">${diffStr} kg</strong>` : ''}
+        · 共 ${log.length} 条记录
+      </div>`;
+  }
+
+  _renderWeightChart(log);
+  _renderWeightHistory(log);
+}
+
+function _renderWeightChart(log) {
+  const canvas = $('.weight-chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  if (log.length < 2) {
+    ctx.fillStyle = '#999';
+    ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('记录 2 条以上体重后显示曲线', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 20, right: 16, bottom: 30, left: 42 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  const weights = log.map(e => e.kg);
+  let minW = Math.min(...weights), maxW = Math.max(...weights);
+  if (maxW - minW < 1) { minW -= 0.5; maxW += 0.5; }
+  const range = maxW - minW || 1;
+
+  const toX = (i) => pad.left + (i / (log.length - 1)) * cw;
+  const toY = (kg) => pad.top + (1 - (kg - minW) / range) * ch;
+
+  // Grid lines
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth = 1;
+  const steps = 4;
+  for (let i = 0; i <= steps; i++) {
+    const y = pad.top + (i / steps) * ch;
+    const val = maxW - (i / steps) * range;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(W - pad.right, y);
+    ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(1), pad.left - 6, y + 4);
+  }
+
+  // Date labels
+  ctx.fillStyle = '#999';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  const labelCount = Math.min(log.length, 6);
+  for (let i = 0; i < labelCount; i++) {
+    const idx = Math.round(i / (labelCount - 1) * (log.length - 1));
+    const d = new Date(log[idx].ts);
+    ctx.fillText(`${d.getMonth() + 1}/${d.getDate()}`, toX(idx), H - 8);
+  }
+
+  // Line
+  ctx.strokeStyle = '#007AFF';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  log.forEach((e, i) => {
+    const x = toX(i), y = toY(e.kg);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Area fill
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#007AFF';
+  ctx.lineTo(toX(log.length - 1), pad.top + ch);
+  ctx.lineTo(toX(0), pad.top + ch);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Dots
+  log.forEach((e, i) => {
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(e.kg), 3, 0, Math.PI * 2);
+    ctx.fillStyle = '#007AFF';
+    ctx.fill();
+  });
+}
+
+function _renderWeightHistory(log) {
+  const container = $('.weight-history');
+  if (log.length === 0) { container.innerHTML = ''; return; }
+  const recent = [...log].reverse().slice(0, 30);
+  let html = '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">最近记录</div>';
+  for (let i = 0; i < recent.length; i++) {
+    const e = recent[i];
+    const d = new Date(e.ts);
+    const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${d.toTimeString().slice(0, 5)}`;
+    const idx = log.length - 1 - i;
+    html += `<div class="wh-item">
+      <span class="wh-kg">${e.kg} kg</span>
+      <span class="wh-time">${dateStr}</span>
+      <button class="wh-del" data-idx="${idx}" title="删除">✕</button>
+    </div>`;
+  }
+  container.innerHTML = html;
+  container.querySelectorAll('.wh-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const wlog = store.getWeightLog();
+      wlog.splice(idx, 1);
+      localStorage.setItem('fitness_weight_log', JSON.stringify(wlog));
+      _renderWeightPage();
+      _updateProgressSummary();
+    });
+  });
+}
+
 function _renderStats() {
   const weekDays = _getWeekDays(_weekOffset);
   const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
@@ -665,6 +847,12 @@ export function init() {
       renderList();
     });
   });
+
+  // Weight button
+  $('.btn-weight')?.addEventListener('click', () => _openWeight());
+  $('.weight-back')?.addEventListener('click', () => _closeWeight());
+  $('.weight-save')?.addEventListener('click', () => _saveWeight());
+  $('.weight-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') _saveWeight(); });
 
   // Stats button
   $('.btn-export')?.addEventListener('click', () => _openStats());
