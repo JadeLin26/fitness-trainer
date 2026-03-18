@@ -283,9 +283,42 @@ function _loadWeights() {
 
 export function recordWeight(kg) {
   const log = _loadWeights();
-  log.push({ kg, ts: new Date().toISOString() });
+  const ts = new Date().toISOString();
+  log.push({ kg, ts });
   localStorage.setItem(WEIGHT_KEY, JSON.stringify(log));
+  _syncWeightToCloud(kg, ts);
 }
+
+async function _syncWeightToCloud(kg, ts) {
+  try {
+    await fetch(`${SB_URL}/weight_log`, {
+      method: 'POST',
+      headers: SB_HEADERS,
+      body: JSON.stringify({ device_id: DEVICE_ID, kg, created_at: ts }),
+    });
+  } catch (e) {
+    console.warn('Weight cloud sync failed:', e);
+  }
+}
+
+async function _migrateWeightsToCloud() {
+  const MIG_KEY = 'fitness_migration_weight_v1';
+  if (localStorage.getItem(MIG_KEY)) return;
+  const log = _loadWeights();
+  if (!log.length) { localStorage.setItem(MIG_KEY, '1'); return; }
+  try {
+    const rows = log.map(w => ({ device_id: DEVICE_ID, kg: w.kg, created_at: w.ts }));
+    await fetch(`${SB_URL}/weight_log`, {
+      method: 'POST',
+      headers: SB_HEADERS,
+      body: JSON.stringify(rows),
+    });
+    localStorage.setItem(MIG_KEY, '1');
+  } catch (e) {
+    console.warn('Weight migration failed:', e);
+  }
+}
+_migrateWeightsToCloud();
 
 export function getWeightLog() {
   return _loadWeights();
@@ -352,6 +385,28 @@ export async function syncFromCloud() {
         if (!local[c.exercise_id]) {
           local[c.exercise_id] = c.checked_at;
           localStorage.setItem(key, JSON.stringify(local));
+        }
+      }
+    }
+    // Sync weight log
+    const res3 = await fetch(`${SB_URL}/weight_log?order=created_at.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (res3.ok) {
+      const cloudWeights = await res3.json();
+      if (cloudWeights?.length) {
+        const local = _loadWeights();
+        let merged = false;
+        for (const w of cloudWeights) {
+          const exists = local.some(l => l.ts && w.created_at && l.ts.slice(0, 16) === w.created_at.slice(0, 16));
+          if (!exists) {
+            local.push({ kg: Number(w.kg), ts: w.created_at });
+            merged = true;
+          }
+        }
+        if (merged) {
+          local.sort((a, b) => a.ts.localeCompare(b.ts));
+          localStorage.setItem(WEIGHT_KEY, JSON.stringify(local));
         }
       }
     }
