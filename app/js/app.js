@@ -462,16 +462,19 @@ function _closeOverlay() {
 // --- Stats panel ---
 let _weekOffset = 0;
 
+function _localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function _getWeekDays(offset = 0) {
   const now = new Date();
   const day = now.getDay() || 7;
-  const mon = new Date(now);
-  mon.setDate(now.getDate() - day + 1 + offset * 7);
+  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1 + offset * 7);
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(mon);
     d.setDate(mon.getDate() + i);
-    days.push(d.toISOString().slice(0, 10));
+    days.push(_localDateStr(d));
   }
   return days;
 }

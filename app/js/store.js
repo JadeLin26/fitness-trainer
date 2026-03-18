@@ -22,10 +22,14 @@ function _getDeviceId() {
   return id;
 }
 
+function _localDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function _trainingDay(now = new Date()) {
   const d = new Date(now);
   if (d.getHours() < 6) d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+  return _localDateStr(d);
 }
 
 function _load() {
