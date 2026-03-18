@@ -65,7 +65,7 @@ function renderList() {
       <span class="cat-progress">${countLabel} · ${timeLabel}</span>
     </div>`;
     for (const ex of exs) {
-      const checked = _isExDone(ex, day);
+      const pct = _exProgress(ex, day);
       const expanded = _expandedId === ex.id;
       const params = _renderParams(ex);
       const hasVideo = ex.video && ex.video !== null;
@@ -76,10 +76,10 @@ function renderList() {
             <div class="ex-card-icon" data-cat="${ex.category}">${_getCatIcon(ex.category)}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
-              <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
+              <div class="ex-card-sub">${_renderCardSummary(ex)}${pct > 0 && pct < 1 ? ` · <span class="sub-pct">${Math.round(pct * 100)}%</span>` : ''}</div>
             </div>
             <div class="ex-card-status">
-              <div class="check-mark ${checked ? 'done' : ''}">✓</div>
+              ${_renderCheckRing(pct)}
               <span class="expand-arrow">›</span>
             </div>
           </div>
@@ -233,6 +233,31 @@ function _isExDone(ex, day) {
   return store.isChecked(ex.id, day);
 }
 
+function _exProgress(ex, day) {
+  if (!ex.mode) return store.isChecked(ex.id, day) ? 1 : 0;
+  if (ex.dailyTarget) {
+    return Math.min(store.getDayTotalReps(ex.id, day) / ex.dailyTarget, 1);
+  }
+  const d = ex.defaults;
+  const reps = store.getDayTotalReps(ex.id, day);
+  const hold = store.getDayTotalHoldSec(ex.id, day);
+  if (ex.mode === 'counted_reps') return Math.min(reps / ((d.sets || 1) * (d.reps || 1)), 1);
+  if (ex.mode === 'timed_hold') return Math.min(hold / ((d.sets || 1) * (d.holdSec || 1)), 1);
+  if (ex.mode === 'timed_reps') return Math.min(reps / ((d.sets || 1) * (d.repsPerSet || 1)), 1);
+  return store.isChecked(ex.id, day) ? 1 : 0;
+}
+
+function _renderCheckRing(pct) {
+  if (pct >= 1) {
+    return `<div class="check-ring full">✓</div>`;
+  }
+  if (pct <= 0) {
+    return `<div class="check-ring"></div>`;
+  }
+  const deg = Math.round(pct * 360);
+  return `<div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"><span>${Math.round(pct * 100)}%</span></div>`;
+}
+
 function _updateProgressSummary() {
   const day = store.trainingDay();
   const dailyExs = getDailyExercises();
@@ -254,14 +279,8 @@ function _updateProgressSummary() {
     fg.style.strokeDashoffset = `${offset}`;
   }
 
-  // Wall angel daily target
-  const waReps = store.getDayTotalReps('wall_angel', day);
-  const waTarget = getExercise('wall_angel')?.dailyTarget || 360;
-  const waPct = Math.min(100, Math.round(waReps / waTarget * 100));
   const waEl = $('.wa-progress');
-  if (waEl) {
-    waEl.textContent = `靠墙天使 ${waReps}/${waTarget} (${waPct}%)`;
-  }
+  if (waEl) waEl.textContent = '';
 }
 
 // --- Training overlay ---

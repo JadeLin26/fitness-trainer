@@ -151,6 +151,7 @@ body {
 .ex-card-info { flex: 1; min-width: 0; }
 .ex-card-name { font-size: 16px; font-weight: 600; }
 .ex-card-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.sub-pct { color: var(--accent); font-weight: 600; }
 
 .ex-card-status {
   display: flex;
@@ -158,19 +159,43 @@ body {
   gap: 8px;
   flex-shrink: 0;
 }
-.check-mark {
-  width: 26px; height: 26px;
+.check-ring {
+  width: 28px; height: 28px;
   border-radius: 50%;
   border: 2px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-  color: transparent;
-  transition: all 0.3s;
+  font-size: 10px;
+  color: var(--text3);
+  background: var(--bg);
+  position: relative;
 }
-.check-mark.done {
+.check-ring.partial {
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 9px;
+}
+.check-ring.partial span {
+  z-index: 1;
+  text-shadow: 0 0 3px rgba(0,0,0,0.3);
+}
+.check-ring.partial::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--bg);
+}
+.check-ring.partial span {
+  position: relative;
+  z-index: 2;
+}
+.check-ring.full {
   background: var(--green);
   border-color: var(--green);
   color: #fff;
+  font-size: 14px;
+  font-weight: 700;
 }
 .expand-arrow {
   font-size: 12px;
