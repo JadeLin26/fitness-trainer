@@ -540,12 +540,6 @@ function _renderDayDetail(day) {
   try {
     const checks = JSON.parse(localStorage.getItem(`fitness_check_${day}`) || '{}');
     const checkedIds = Object.keys(checks);
-    if (checkedIds.length > 0) {
-      html += '<div class="detail-checks-title">打勾完成</div>';
-      for (const id of checkedIds) {
-        html += `<div class="detail-check-row">✓ ${exerciseMap[id] || id}</div>`;
-      }
-    }
   } catch {}
 
   container.innerHTML = html;
