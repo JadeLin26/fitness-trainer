@@ -17,8 +17,17 @@ const CAT_ICON_FILES = {
   '圆肩驼背矫正': 'icons/icon_back.png',
 };
 
-function _getCatIcon(category) {
-  const src = CAT_ICON_FILES[category] || CAT_ICON_FILES['辅助训练'];
+const EX_ICON_FILES = {
+  'pelvic_breath': 'icons/icon_pelvic_breath.png',
+  'pelvic_tilt': 'icons/icon_pelvic_tilt.png',
+  'hip_flexor_stretch': 'icons/icon_hip_flexor.png',
+  'single_leg_lower': 'icons/icon_core.png',
+  'single_glute_bridge': 'icons/icon_glute.png',
+  'single_leg_deadlift': 'icons/icon_hamstring.png',
+};
+
+function _getExIcon(exId, category) {
+  const src = EX_ICON_FILES[exId] || CAT_ICON_FILES[category] || CAT_ICON_FILES['辅助训练'];
   return `<img src="${src}" alt="${category}" draggable="false">`;
 }
 
@@ -73,7 +82,7 @@ function renderList() {
       html += `
         <div class="ex-card ${expanded ? 'expanded' : ''}" data-id="${ex.id}">
           <div class="ex-card-header" data-id="${ex.id}" role="button" tabindex="0" aria-expanded="${expanded}">
-            <div class="ex-card-icon" data-cat="${ex.category}">${_getCatIcon(ex.category)}</div>
+            <div class="ex-card-icon" data-cat="${ex.category}">${_getExIcon(ex.id, ex.category)}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
               <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
