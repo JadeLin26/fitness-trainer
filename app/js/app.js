@@ -387,11 +387,13 @@ function _getWeekLabel(offset) {
 
 function _openStats() {
   $('.stats-panel').style.display = '';
+  document.body.style.overflow = 'hidden';
   _renderStats();
 }
 
 function _closeStats() {
   $('.stats-panel').style.display = 'none';
+  document.body.style.overflow = '';
   _weekOffset = 0;
 }
 
