@@ -43,6 +43,115 @@ function _save(data) {
 
 export function trainingDay(now) { return _trainingDay(now); }
 
+// One-time migration: fix dates stored with wrong timezone due to toISOString() UTC bug
+function _migrateTimezoneDates() {
+  const MIG_KEY = 'fitness_migration_tz_v1';
+  if (localStorage.getItem(MIG_KEY)) return;
+
+  // Fix training_data
+  const data = _load();
+  const fixed = {};
+  let moved = 0;
+  for (const [day, exs] of Object.entries(data)) {
+    for (const [exId, sessions] of Object.entries(exs)) {
+      for (const s of sessions) {
+        let correctDay = day;
+        if (s.ts) {
+          const d = new Date(s.ts);
+          if (!isNaN(d)) correctDay = _trainingDay(d);
+        }
+        if (!fixed[correctDay]) fixed[correctDay] = {};
+        if (!fixed[correctDay][exId]) fixed[correctDay][exId] = [];
+        fixed[correctDay][exId].push(s);
+        if (correctDay !== day) moved++;
+      }
+    }
+  }
+  if (moved) {
+    _save(fixed);
+    console.log(`[migration] Moved ${moved} session(s) to correct dates`);
+  }
+
+  // Fix checklist keys
+  const checkKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith('fitness_check_')) checkKeys.push(k);
+  }
+  for (const key of checkKeys) {
+    const oldDay = key.slice('fitness_check_'.length);
+    const checks = JSON.parse(localStorage.getItem(key) || '{}');
+    const toMove = {};
+    for (const [exId, ts] of Object.entries(checks)) {
+      if (!ts) continue;
+      const d = new Date(ts);
+      if (isNaN(d)) continue;
+      const correctDay = _trainingDay(d);
+      if (correctDay !== oldDay) {
+        toMove[exId] = { ts, correctDay };
+        moved++;
+      }
+    }
+    for (const [exId, { ts, correctDay }] of Object.entries(toMove)) {
+      delete checks[exId];
+      const newKey = `fitness_check_${correctDay}`;
+      const newChecks = JSON.parse(localStorage.getItem(newKey) || '{}');
+      newChecks[exId] = ts;
+      localStorage.setItem(newKey, JSON.stringify(newChecks));
+    }
+    localStorage.setItem(key, JSON.stringify(checks));
+  }
+
+  // Fix Supabase cloud data
+  _migrateCloudDates();
+
+  localStorage.setItem(MIG_KEY, String(Date.now()));
+  if (moved) console.log(`[migration] Timezone date migration complete, ${moved} record(s) fixed`);
+}
+
+async function _migrateCloudDates() {
+  try {
+    const res = await fetch(`${SB_URL}/training_sessions?select=id,training_day,created_at`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (!res.ok) return;
+    const rows = await res.json();
+    for (const r of rows) {
+      if (!r.created_at) continue;
+      const correct = _trainingDay(new Date(r.created_at));
+      if (correct !== r.training_day) {
+        await fetch(`${SB_URL}/training_sessions?id=eq.${r.id}`, {
+          method: 'PATCH',
+          headers: SB_HEADERS,
+          body: JSON.stringify({ training_day: correct }),
+        });
+      }
+    }
+
+    const res2 = await fetch(`${SB_URL}/daily_checklist?select=id,training_day,checked_at`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (!res2.ok) return;
+    const rows2 = await res2.json();
+    for (const r of rows2) {
+      if (!r.checked_at) continue;
+      const correct = _trainingDay(new Date(r.checked_at));
+      if (correct !== r.training_day) {
+        await fetch(`${SB_URL}/daily_checklist?id=eq.${r.id}`, {
+          method: 'PATCH',
+          headers: SB_HEADERS,
+          body: JSON.stringify({ training_day: correct }),
+        });
+      }
+    }
+    console.log('[migration] Cloud dates fixed');
+  } catch (e) {
+    console.warn('[migration] Cloud date fix failed:', e);
+  }
+}
+
+_migrateTimezoneDates();
+
 export function recordSession(exerciseId, { sets, repsPerSet, totalReps, holdSeconds, durationSeconds, sessionKind }) {
   const data = _load();
   const now = new Date();
