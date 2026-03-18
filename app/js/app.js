@@ -178,26 +178,32 @@ function _estimateMinutes(ex) {
   if (ex.estimatedMinutes) return ex.estimatedMinutes;
   if (!ex.mode) return null;
   const d = ex.defaults;
-  let totalSec = (d.prepSec || 5);
+  let sessionSec = (d.prepSec || 5);
   const sets = d.sets || 1;
 
   if (ex.mode === 'counted_reps') {
     const reps = d.reps || 0;
     const tempo = d.tempo || 2;
-    totalSec += sets * reps * tempo;
-    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+    sessionSec += sets * reps * tempo;
+    sessionSec += Math.max(0, sets - 1) * (d.rest || 0);
   } else if (ex.mode === 'timed_hold') {
-    totalSec += sets * (d.holdSec || 0);
-    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+    sessionSec += sets * (d.holdSec || 0);
+    sessionSec += Math.max(0, sets - 1) * (d.rest || 0);
   } else if (ex.mode === 'timed_reps') {
     const repsPerSet = d.repsPerSet || 0;
     const holdSec = d.holdSec || 0;
     const restRep = d.restRep || 0;
-    totalSec += sets * (repsPerSet * (holdSec + restRep));
-    totalSec += Math.max(0, sets - 1) * (d.rest || 0);
+    sessionSec += sets * (repsPerSet * (holdSec + restRep));
+    sessionSec += Math.max(0, sets - 1) * (d.rest || 0);
   }
 
-  return Math.ceil(totalSec / 60);
+  if (ex.dailyTarget && ex.mode === 'counted_reps') {
+    const repsPerSession = sets * (d.reps || 1);
+    const sessions = Math.ceil(ex.dailyTarget / repsPerSession);
+    return Math.ceil(sessions * sessionSec / 60);
+  }
+
+  return Math.ceil(sessionSec / 60);
 }
 
 function _renderCardSummary(ex) {
