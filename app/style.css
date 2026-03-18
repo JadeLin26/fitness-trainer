@@ -275,6 +275,15 @@ body {
   border-radius: var(--radius-sm);
   margin-bottom: 14px;
 }
+.ex-images {
+  margin-bottom: 14px;
+}
+.ex-image {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  display: block;
+}
 .btn-start {
   width: 100%;
   padding: 14px;
@@ -671,7 +680,7 @@ body {
 
 /* Weekly calorie banner */
 .stats-cal-banner {
-  margin: 16px;
+  margin: 16px auto;
   padding: 16px;
   background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
   border-radius: var(--radius-sm);

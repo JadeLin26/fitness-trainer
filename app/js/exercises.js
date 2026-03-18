@@ -59,7 +59,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: '../videos/shaker.mp4',
+    video: '../videos/shaker_iso.mp4',
     images: [],
   },
   {
@@ -79,7 +79,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: false,
     hasBGM: false,
-    video: '../videos/shaker.mp4',
+    video: '../videos/shaker_dyn.mp4',
     images: [],
   },
   {
@@ -99,8 +99,8 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: '../videos/suprahyoid.mp4',
-    images: [],
+    video: null,
+    images: ['../images/subman_push_demo.jpg'],
   },
   {
     id: 'fesm',
@@ -119,8 +119,8 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: '../videos/ctar.mp4',
-    images: [],
+    video: null,
+    images: ['../images/fesm_demo.jpg'],
   },
   {
     id: 'chin_tuck',
@@ -139,8 +139,8 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: false,
     hasBGM: false,
-    video: '../videos/chin_tuck.mp4',
-    images: [],
+    video: null,
+    images: ['../images/chin_tuck_demo.jpg'],
   },
   {
     id: 'mewing',
@@ -158,8 +158,8 @@ export const exercises = [
     ttsDir: null,
     ttsMap: null,
     hasBGM: false,
-    video: '../videos/mewing.mp4',
-    images: [],
+    video: null,
+    images: ['../images/mewing_demo.jpg'],
   },
   {
     id: 'pelvic_breath',
