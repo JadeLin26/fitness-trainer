@@ -76,7 +76,7 @@ function renderList() {
             <div class="ex-card-icon" data-cat="${ex.category}">${_getCatIcon(ex.category)}</div>
             <div class="ex-card-info">
               <div class="ex-card-name">${ex.name}</div>
-              <div class="ex-card-sub">${_renderCardSummary(ex)}${pct > 0 && pct < 1 ? ` · <span class="sub-pct">${Math.round(pct * 100)}%</span>` : ''}</div>
+              <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
             </div>
             <div class="ex-card-status">
               ${_renderCheckRing(pct)}
@@ -256,7 +256,7 @@ function _renderCheckRing(pct) {
     return `<div class="check-ring"></div>`;
   }
   const deg = Math.round(pct * 360);
-  return `<div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"><span>${Math.round(pct * 100)}%</span></div>`;
+  return `<span class="ring-pct">${Math.round(pct * 100)}%</span><div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"></div>`;
 }
 
 function _updateProgressSummary() {
