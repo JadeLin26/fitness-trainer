@@ -48,7 +48,22 @@ function renderList() {
   for (const cat of sortedKeys) {
     const exs = groups[cat];
     if (!exs) continue;
-    html += `<div class="category-header">${cat}</div>`;
+
+    const totalMins = exs.reduce((s, ex) => s + (_estimateMinutes(ex) || 0), 0);
+    const doneExs = exs.filter(ex => store.isChecked(ex.id, day));
+    const doneMins = doneExs.reduce((s, ex) => s + (_estimateMinutes(ex) || 0), 0);
+    const remainMins = totalMins - doneMins;
+    const countLabel = `${doneExs.length}/${exs.length}项`;
+    const timeLabel = doneExs.length === exs.length
+      ? `已全部完成 ✓`
+      : doneExs.length > 0
+        ? `还需约${remainMins}分钟`
+        : `共约${totalMins}分钟`;
+
+    html += `<div class="category-header">
+      <span class="cat-title">${cat}</span>
+      <span class="cat-progress">${countLabel} · ${timeLabel}</span>
+    </div>`;
     for (const ex of exs) {
       const checked = store.isChecked(ex.id, day);
       const expanded = _expandedId === ex.id;
