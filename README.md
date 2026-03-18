@@ -12,11 +12,13 @@ GitHub Pages: `https://jadelin26.github.io/fitness-trainer/`
 
 - **15 exercises** across 6 categories with per-exercise anatomical icons
 - **Universal training engine** — 3 modes: counted reps, timed hold, timed reps
-- **Voice-guided counting** with pre-generated TTS clips (Chinese) + Web Speech API fallback
-- **Left/right alternating** — automatic voice prompts for exercises that switch legs per set
+- **Voice-guided counting** with pre-recorded WAV clips (all voice prompts use WAV, no browser TTS dependency)
+- **Left/right alternating** — automatic voice prompts ("左腿"/"右腿") for exercises that switch legs per set
 - **90 BPM background beat** during Wall Angel training
 - **Cloud sync** via Supabase (PostgreSQL) — localStorage as local layer, REST API for sync
-- **Stats panel** — weekly heatmap, category summaries, per-day session detail, CSV export
+- **Calorie tracking** — real-time daily calorie burn on home page with fun equivalents (steps, eggs, lattes, rice bowls)
+- **Weight tracking** — dedicated weight page with input, BMI calculation, trend chart, and history log
+- **Stats panel** — weekly heatmap, weekly calorie summary, category summaries, per-day session detail, CSV export
 - **Progress tracking** — pie-chart progress rings, completion percentage, daily target support
 - **Grouping modes** — switch between "by body part" and "by scene/position"
 - **PWA** — installable, offline-capable via Service Worker
@@ -84,14 +86,14 @@ fitness-trainer/
 │   ├── sw.js                 # Service Worker (offline cache)
 │   ├── icons/                # Per-exercise anatomical PNG icons (128×128)
 │   └── js/
-│       ├── app.js            # UI rendering, stats panel, event handling
+│       ├── app.js            # UI rendering, stats, weight page, calorie calc
 │       ├── engine.js         # Training state machine (prep → active → rest → done)
 │       ├── exercises.js      # Exercise config registry (all 15 exercises)
-│       ├── store.js          # localStorage + Supabase REST API sync
-│       ├── voice.js          # Web Audio playback + silence trimming + TTS fallback
+│       ├── store.js          # localStorage + Supabase sync + weight tracking
+│       ├── voice.js          # Web Audio playback + silence trimming
 │       └── bgm.js            # Background beat generator (Web Audio oscillator)
 ├── trainer_tts/              # Wall Angel TTS clips (male voice)
-├── hyoid_tts/                # Hyoid/general exercise TTS clips (female voice)
+├── hyoid_tts/                # General exercise TTS clips (female voice) + left_leg/right_leg
 ├── videos/                   # Exercise demo videos
 ├── serve.py                  # Dev server (port 8766)
 ├── DEPLOY.md                 # Deployment guide
@@ -104,15 +106,19 @@ fitness-trainer/
 ```
 idle → prep → active → rest → (repeat sets) → done
 ```
-Supports 3 modes: `counted_reps`, `timed_hold`, `timed_reps`. Handles left/right alternating via `alternating` property. Each exercise is a config object — the engine is mode-driven, not exercise-specific.
+Supports 3 modes: `counted_reps`, `timed_hold`, `timed_reps`. Handles left/right alternating via `alternating` property with pre-recorded WAV prompts. Each exercise is a config object — the engine is mode-driven, not exercise-specific.
 
 **Exercise Config** (`exercises.js`) — each exercise defines: id, name, category, scene, mode, defaults (sets/reps/hold/tempo/rest), TTS directory, alternating flag, daily target, video references.
 
-**Voice System** (`voice.js`) — loads WAV files from TTS directories with automatic silence trimming. Falls back to Web Speech API for phrases without pre-recorded clips (e.g. "左腿"/"右腿").
+**Voice System** (`voice.js`) — loads pre-recorded WAV files from TTS directories with automatic silence trimming. All voice prompts (numbers, set announcements, left/right leg) use WAV files.
 
-**Data Layer** (`store.js`) — localStorage as primary store, Supabase PostgreSQL as cloud sync. Uses native `fetch()` against Supabase REST API (zero SDK dependency).
+**Data Layer** (`store.js`) — localStorage as primary store, Supabase PostgreSQL as cloud sync. Uses native `fetch()` against Supabase REST API (zero SDK dependency). Also handles weight tracking with timestamped records.
 
-**Stats Panel** — weekly heatmap with area-based completion visualization, category-grouped summaries, per-day session detail log, CSV export.
+**Calorie Tracking** — MET-based calculation per exercise using actual body weight from weight records. Displayed on home page with fun equivalents and weekly summary in stats panel.
+
+**Weight Tracking** — dedicated page with input, BMI calculation (fixed profile: 163cm/28F), Canvas-drawn trend chart, and deletable history log.
+
+**Stats Panel** — weekly calorie banner, heatmap with area-based completion visualization, category-grouped summaries, per-day session detail log with daily calories, CSV export.
 
 ## Deployment
 
@@ -126,7 +132,7 @@ See [DEPLOY.md](DEPLOY.md) for setup details.
 
 - Vanilla JS (ES Modules) — zero dependencies, no build
 - Web Audio API — voice playback + BGM generation
-- Web Speech API — TTS fallback
+- Canvas API — weight trend chart
 - localStorage + Supabase REST — offline-first with cloud sync
 - Service Worker — cache-first strategy
 - CSS custom properties — iOS Light Theme
