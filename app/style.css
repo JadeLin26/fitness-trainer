@@ -178,9 +178,9 @@ body {
   font-weight: 700;
 }
 .ring-pct {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--green);
   margin-right: 4px;
 }
 .expand-arrow {
