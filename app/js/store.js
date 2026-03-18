@@ -72,6 +72,7 @@ async function _syncSessionToCloud(day, exerciseId, entry) {
         hold_seconds: entry.holdSeconds || 0,
         duration_seconds: entry.durationSeconds || 0,
         session_kind: entry.sessionKind || 'done',
+        created_at: new Date().toISOString(),
       }),
     });
   } catch (e) {
@@ -118,6 +119,7 @@ async function _syncCheckToCloud(day, exerciseId) {
         device_id: DEVICE_ID,
         training_day: day,
         exercise_id: exerciseId,
+        checked_at: new Date().toISOString(),
       }),
     });
   } catch (e) {
