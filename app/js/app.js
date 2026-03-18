@@ -165,14 +165,13 @@ function _completionRatio(ex, dayReps, dayHold, checked) {
 
 function _renderHeatDot(ratio) {
   if (ratio <= 0) return '';
+  const full = ratio >= 1;
+  if (full) {
+    return `<span class="hm-full">✓</span>`;
+  }
   const R = 10;
   const r = Math.sqrt(ratio) * R;
-  const full = ratio >= 1;
-  const color = full ? '#2E7D32' : '#4CAF50';
-  let svg = `<svg class="hm-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="${r.toFixed(1)}" fill="${color}" opacity="${full ? 1 : 0.7}"/>`;
-  if (full) svg += `<path d="M8 12.5l2.5 2.5 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
-  svg += `</svg>`;
-  return svg;
+  return `<svg class="hm-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="${r.toFixed(1)}" fill="#4CAF50" opacity="0.7"/></svg>`;
 }
 
 function _estimateMinutes(ex) {
