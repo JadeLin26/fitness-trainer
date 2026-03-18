@@ -155,24 +155,6 @@ export const exercises = [
     images: [],
   },
   {
-    id: 'jawline',
-    name: '颏下综合训练',
-    subtitle: '辅助训练',
-    category: '辅助训练',
-    categoryTag: 'auxiliary',
-    scene: '坐姿 · 随时',
-    daily: true,
-    description: '辅助性颏下区域训练，可根据自身情况选做。',
-    tips: '',
-    mode: null,
-    defaults: {},
-    ttsDir: null,
-    ttsMap: null,
-    hasBGM: false,
-    video: '../videos/jawline.mp4',
-    images: [],
-  },
-  {
     id: 'pelvic_breath',
     name: '俯卧位腰椎呼吸',
     subtitle: '骨盆前倾矫正 · 热身',
@@ -188,7 +170,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: false,
     hasBGM: false,
-    video: null,
+    video: '../videos/pelvic_breath.mp4',
     images: [],
   },
   {
@@ -207,7 +189,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: false,
     hasBGM: false,
-    video: null,
+    video: '../videos/pelvic_tilt.mp4',
     images: [],
   },
   {
@@ -227,7 +209,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: null,
+    video: '../videos/hip_flexor_stretch.mp4',
     images: [],
   },
   {
@@ -247,7 +229,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: null,
+    video: '../videos/single_leg_lower.mp4',
     images: [],
   },
   {
@@ -267,7 +249,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: null,
+    video: '../videos/single_glute_bridge.mp4',
     images: [],
   },
   {
@@ -287,7 +269,7 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,
     hasBGM: false,
-    video: null,
+    video: '../videos/single_leg_deadlift.mp4',
     images: [],
   },
   {

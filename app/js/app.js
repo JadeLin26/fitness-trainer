@@ -285,7 +285,7 @@ const EX_MET = {
   'wall_angel': 3.0,
   'shaker_iso': 2.5, 'shaker_dyn': 3.0,
   'subman_push': 2.0, 'fesm': 2.0,
-  'chin_tuck': 2.0, 'mewing': 1.0, 'jawline': 2.0,
+  'chin_tuck': 2.0, 'mewing': 1.0,
   'pelvic_breath': 1.5, 'pelvic_tilt': 3.0,
   'hip_flexor_stretch': 2.5,
   'single_leg_lower': 3.5, 'single_glute_bridge': 4.0,
