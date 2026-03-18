@@ -1,0 +1,11 @@
+videos/
+*.xlsx
+*.pyw
+*.pyc
+__pycache__/
+posture_training_log.json
+launch_posture_trainer.vbs
+*.bat
+*.ico
+*.DS_Store
+trainer_tts/_playback_cache/

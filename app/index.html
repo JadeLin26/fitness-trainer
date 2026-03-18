@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>体态训练</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <meta name="theme-color" content="#007AFF">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>体态训练</h1>
+    <div class="subtitle">所有训练 · 一页搞定</div>
+  </div>
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="date date-display"></div>
+    <div class="actions">
+      <button class="icon-btn btn-mute" title="静音">🔊</button>
+      <button class="icon-btn btn-export" title="导出CSV">📊</button>
+    </div>
+  </div>
+
+  <!-- Progress summary -->
+  <div class="progress-summary">
+    <svg class="ring" viewBox="0 0 44 44">
+      <circle class="ring-bg" cx="22" cy="22" r="18" />
+      <circle class="ring-fg summary-ring-fg" cx="22" cy="22" r="18"
+        stroke-dasharray="113.1" stroke-dashoffset="113.1"
+        transform="rotate(-90 22 22)" />
+    </svg>
+    <div class="info">
+      <div class="label progress-label">今日完成 0%</div>
+      <div class="value progress-value">0/0</div>
+      <div class="label wa-progress" style="margin-top:2px;font-size:12px;color:var(--accent)"></div>
+    </div>
+  </div>
+
+  <!-- Exercise list -->
+  <div class="exercise-list"></div>
+
+  <!-- History panel -->
+  <div class="history-panel" style="display:none">
+    <div class="history-header">
+      <button class="history-back">← 返回</button>
+      <span class="history-title">训练记录</span>
+      <button class="history-export" title="导出CSV">📥</button>
+    </div>
+    <div class="history-content"></div>
+  </div>
+
+  <!-- Training overlay (fullscreen) -->
+  <div class="training-overlay">
+    <div class="training-header">
+      <div class="training-title"></div>
+      <div class="training-subtitle"></div>
+    </div>
+
+    <div class="ring-container">
+      <svg viewBox="0 0 220 220" width="100%" height="100%">
+        <circle class="ring-timer-bg" cx="110" cy="110" r="100" />
+        <circle class="ring-timer-fg" cx="110" cy="110" r="100"
+          stroke-dasharray="628.3" stroke-dashoffset="0"
+          transform="rotate(-90 110 110)" />
+      </svg>
+      <div class="ring-center">
+        <div class="ring-number">-</div>
+        <div class="ring-label">准备</div>
+      </div>
+    </div>
+
+    <div class="training-info">
+      <div class="training-progress-text"></div>
+      <div class="training-tips"></div>
+    </div>
+
+    <div class="training-controls">
+      <button class="btn-training btn-pause">暂停</button>
+      <button class="btn-training btn-resume" style="display:none">继续</button>
+      <button class="btn-training btn-stop">结束</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script type="module">
+    import { init } from './js/app.js';
+    init();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  </script>
+</body>
+</html>

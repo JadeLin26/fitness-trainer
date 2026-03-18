@@ -1,0 +1,19 @@
+{
+  "name": "体态训练",
+  "short_name": "体态训练",
+  "description": "靠墙天使 + 舌骨肌群 + 姿势矫正 — 所有训练一页搞定",
+  "start_url": "/app/index.html",
+  "scope": "/app/",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#007AFF",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
