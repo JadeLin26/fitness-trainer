@@ -627,7 +627,11 @@ function _renderWeightChart(log) {
   if (maxW - minW < 1) { minW -= 0.5; maxW += 0.5; }
   const range = maxW - minW || 1;
 
-  const toX = (i) => pad.left + (i / (log.length - 1)) * cw;
+  const timestamps = log.map(e => new Date(e.ts).getTime());
+  const tMin = timestamps[0], tMax = timestamps[timestamps.length - 1];
+  const tRange = tMax - tMin || 1;
+
+  const toX = (i) => pad.left + ((timestamps[i] - tMin) / tRange) * cw;
   const toY = (kg) => pad.top + (1 - (kg - minW) / range) * ch;
 
   // Grid lines
@@ -647,15 +651,16 @@ function _renderWeightChart(log) {
     ctx.fillText(val.toFixed(1), pad.left - 6, y + 4);
   }
 
-  // Date labels
+  // Date labels — evenly spaced along the time axis
   ctx.fillStyle = '#999';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
-  const labelCount = Math.min(log.length, 6);
+  const labelCount = Math.min(6, Math.ceil((tMax - tMin) / 86400000) + 1);
   for (let i = 0; i < labelCount; i++) {
-    const idx = Math.round(i / (labelCount - 1) * (log.length - 1));
-    const d = new Date(log[idx].ts);
-    ctx.fillText(`${d.getMonth() + 1}/${d.getDate()}`, toX(idx), H - 8);
+    const t = tMin + (i / (labelCount - 1)) * tRange;
+    const x = pad.left + (i / (labelCount - 1)) * cw;
+    const d = new Date(t);
+    ctx.fillText(`${d.getMonth() + 1}/${d.getDate()}`, x, H - 8);
   }
 
   // Line
