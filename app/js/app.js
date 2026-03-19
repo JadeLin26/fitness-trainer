@@ -760,9 +760,11 @@ function _renderWeightHistory(log) {
 
 // --- Period panel ---
 let _periodMonthOffset = 0;
+let _selectedDate = null;
 
 function _openPeriod() {
   _periodMonthOffset = 0;
+  _selectedDate = store.trainingDay();
   $('.period-panel').style.display = '';
   document.body.style.overflow = 'hidden';
   _renderPeriodPage();
@@ -771,6 +773,7 @@ function _openPeriod() {
 function _closePeriod() {
   $('.period-panel').style.display = 'none';
   document.body.style.overflow = '';
+  _selectedDate = null;
 }
 
 function _getPeriodMonthDays(offset) {
@@ -829,11 +832,13 @@ function _renderPeriodPage() {
       const isPeriod = store.isPeriodDay(cell.date);
       const isStart = periods.some(p => p.startDate === cell.date);
       const isToday = cell.date === today;
+      const isSelected = cell.date === _selectedDate;
       const cls = [
         'pcal-day',
         !cell.thisMonth ? 'other-month' : '',
         isStart ? 'period-start' : isPeriod ? 'period' : '',
         isToday ? 'today' : '',
+        isSelected ? 'selected' : '',
       ].filter(Boolean).join(' ');
       html += `<td><span class="${cls}" data-date="${cell.date}">${cell.day}</span></td>`;
     }
@@ -879,34 +884,37 @@ function _renderPeriodPage() {
   infoHtml += '</div>';
   $('.period-info').innerHTML = legendHtml + infoHtml;
 
-  // Action buttons
+  // Selected date display
+  const selLabel = _selectedDate ? _selectedDate : '请在日历上选择日期';
+
+  // Action buttons based on state
   let actHtml = '';
   if (currentPeriod) {
-    actHtml = `<button class="btn-period-end" data-start="${currentPeriod.startDate}">经期已结束</button>`;
+    actHtml = `<button class="btn-period-end" data-start="${currentPeriod.startDate}">📅 ${selLabel}　经期结束</button>`;
   } else {
-    actHtml = `<button class="btn-period-start">记录经期开始</button>`;
+    actHtml = `<button class="btn-period-start">📅 ${selLabel}　记录经期开始</button>`;
   }
   $('.period-actions').innerHTML = actHtml;
 
   // Bind action buttons
   $('.period-actions').querySelector('.btn-period-start')?.addEventListener('click', () => {
-    store.addPeriod(today);
+    if (!_selectedDate) return;
+    if (store.isPeriodDay(_selectedDate)) return;
+    store.addPeriod(_selectedDate);
     _renderPeriodPage();
   });
   $('.period-actions').querySelector('.btn-period-end')?.addEventListener('click', (e) => {
+    if (!_selectedDate) return;
     const startDate = e.target.dataset.start;
-    store.endPeriodEarly(startDate, today);
+    if (_selectedDate < startDate) return;
+    store.endPeriodEarly(startDate, _selectedDate);
     _renderPeriodPage();
   });
 
-  // Bind calendar day click to toggle period start
+  // Calendar day click = select date only
   $('.period-calendar').querySelectorAll('.pcal-day[data-date]').forEach(el => {
     el.addEventListener('click', () => {
-      const date = el.dataset.date;
-      const existingPeriod = periods.find(p => p.startDate === date);
-      if (existingPeriod) return;
-      if (store.isPeriodDay(date)) return;
-      store.addPeriod(date);
+      _selectedDate = el.dataset.date;
       _renderPeriodPage();
     });
   });

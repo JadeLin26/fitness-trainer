@@ -1020,6 +1020,9 @@ body {
   color: #fff;
   font-weight: 700;
 }
+.pcal-day.selected {
+  box-shadow: 0 0 0 2px var(--accent);
+}
 .pcal-day.other-month {
   opacity: 0.3;
 }
