@@ -952,18 +952,18 @@ function _renderPeriodPage() {
   infoHtml += '</div>';
   $('.period-info').innerHTML = legendHtml + infoHtml;
 
-  // Find the period record that contains the selected date
-  const selectedPeriod = _selectedDate
-    ? periods.find(p => _selectedDate >= p.startDate && _selectedDate <= p.endDate)
+  // Find the nearest period whose startDate <= selected date (upstream match)
+  const nearestPeriod = _selectedDate
+    ? [...periods].reverse().find(p => _selectedDate >= p.startDate)
     : null;
 
   const selLabel = _selectedDate || '请先选择日期';
   const canStart = _selectedDate && !store.isPeriodDay(_selectedDate);
-  const canEnd = _selectedDate && selectedPeriod && _selectedDate >= selectedPeriod.startDate;
+  const canEnd = _selectedDate && nearestPeriod != null;
 
   let actHtml = `<div class="period-sel-label">已选：${selLabel}</div><div class="period-btn-row">`;
   actHtml += `<button class="btn-period-start" ${canStart ? '' : 'disabled'}>记录经期开始</button>`;
-  actHtml += `<button class="btn-period-end" ${canEnd ? '' : 'disabled'} data-start="${selectedPeriod?.startDate || ''}">标记经期结束</button>`;
+  actHtml += `<button class="btn-period-end" ${canEnd ? '' : 'disabled'} data-start="${nearestPeriod?.startDate || ''}">标记经期结束</button>`;
   actHtml += '</div>';
   $('.period-actions').innerHTML = actHtml;
 
@@ -975,7 +975,7 @@ function _renderPeriodPage() {
   });
   $('.period-actions').querySelector('.btn-period-end').addEventListener('click', (e) => {
     if (!canEnd) return;
-    store.endPeriodEarly(selectedPeriod.startDate, _selectedDate);
+    store.endPeriodEarly(nearestPeriod.startDate, _selectedDate);
     _renderPeriodPage();
   });
 
