@@ -515,53 +515,23 @@ export async function syncFromCloud() {
         }
       }
     }
-    // Sync weight log — cloud is source of truth
+    // Sync weight log — cloud is source of truth, local replaced entirely
     const res3 = await fetch(`${SB_URL}/weight_log?order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res3.ok) {
       const cloudWeights = await res3.json();
-      const local = _loadWeights();
-      const cloudSet = new Set((cloudWeights || []).map(w => w.created_at?.slice(0, 16)));
-      const localOnly = local.filter(l => l.ts && !cloudSet.has(l.ts.slice(0, 16)));
-      // Upload local-only records
-      for (const lo of localOnly) {
-        try {
-          await fetch(`${SB_URL}/weight_log`, {
-            method: 'POST', headers: SB_HEADERS,
-            body: JSON.stringify({ device_id: DEVICE_ID, kg: lo.kg, created_at: lo.ts }),
-          });
-        } catch {}
-      }
-      // Rebuild local from cloud + local-only
-      const merged = (cloudWeights || []).map(w => ({ kg: Number(w.kg), ts: w.created_at }));
-      for (const lo of localOnly) merged.push(lo);
-      merged.sort((a, b) => a.ts.localeCompare(b.ts));
-      localStorage.setItem(WEIGHT_KEY, JSON.stringify(merged));
+      const rebuilt = (cloudWeights || []).map(w => ({ kg: Number(w.kg), ts: w.created_at }));
+      localStorage.setItem(WEIGHT_KEY, JSON.stringify(rebuilt));
     }
-    // Sync period log — cloud is source of truth
+    // Sync period log — cloud is source of truth, local replaced entirely
     const res4 = await fetch(`${SB_URL}/period_log?order=start_date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res4.ok) {
       const cloudPeriods = await res4.json();
-      const local = _loadPeriods();
-      const cloudSet = new Set((cloudPeriods || []).map(p => p.start_date));
-      const localOnly = local.filter(l => !cloudSet.has(l.startDate));
-      // Upload local-only records
-      for (const lo of localOnly) {
-        try {
-          await fetch(`${SB_URL}/period_log`, {
-            method: 'POST', headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-            body: JSON.stringify({ device_id: DEVICE_ID, start_date: lo.startDate, end_date: lo.endDate }),
-          });
-        } catch {}
-      }
-      // Rebuild local from cloud + local-only
-      const merged = (cloudPeriods || []).map(p => ({ startDate: p.start_date, endDate: p.end_date }));
-      for (const lo of localOnly) merged.push(lo);
-      merged.sort((a, b) => a.startDate.localeCompare(b.startDate));
-      _savePeriods(merged);
+      const rebuilt = (cloudPeriods || []).map(p => ({ startDate: p.start_date, endDate: p.end_date }));
+      _savePeriods(rebuilt);
     }
   } catch (e) {
     console.warn('Cloud sync pull failed:', e);
