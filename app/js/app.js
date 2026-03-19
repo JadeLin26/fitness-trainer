@@ -749,9 +749,7 @@ function _renderWeightHistory(log) {
   container.querySelectorAll('.wh-del').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.idx);
-      const wlog = store.getWeightLog();
-      wlog.splice(idx, 1);
-      localStorage.setItem('fitness_weight_log', JSON.stringify(wlog));
+      store.deleteWeight(idx);
       _renderWeightPage();
       _updateProgressSummary();
     });

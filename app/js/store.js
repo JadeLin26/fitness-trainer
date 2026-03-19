@@ -339,6 +339,25 @@ export function getWeightLog() {
   return _loadWeights();
 }
 
+export function deleteWeight(idx) {
+  const log = _loadWeights();
+  if (idx < 0 || idx >= log.length) return;
+  const removed = log.splice(idx, 1)[0];
+  localStorage.setItem(WEIGHT_KEY, JSON.stringify(log));
+  if (removed?.ts) _deleteWeightFromCloud(removed.ts);
+}
+
+async function _deleteWeightFromCloud(ts) {
+  try {
+    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=eq.${ts}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+  } catch (e) {
+    console.warn('Weight cloud delete failed:', e);
+  }
+}
+
 export function getLatestWeight() {
   const log = _loadWeights();
   return log.length ? log[log.length - 1].kg : null;
@@ -389,6 +408,18 @@ export function endPeriodEarly(startDate, endDate) {
 export function deletePeriod(startDate) {
   const log = _loadPeriods().filter(p => p.startDate !== startDate);
   _savePeriods(log);
+  _deletePeriodFromCloud(startDate);
+}
+
+async function _deletePeriodFromCloud(startDate) {
+  try {
+    await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&start_date=eq.${startDate}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+  } catch (e) {
+    console.warn('Period cloud delete failed:', e);
+  }
 }
 
 export function isPeriodDay(dateStr) {
