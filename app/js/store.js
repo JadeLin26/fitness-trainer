@@ -229,7 +229,7 @@ export function incrementCheck(exerciseId, day) {
   counts[exerciseId] = (counts[exerciseId] || 0) + 1;
   localStorage.setItem(key, JSON.stringify(counts));
 
-  _syncCheckToCloud(day, exerciseId);
+  _syncCheckCountToCloud(day, exerciseId, counts[exerciseId]);
 }
 
 export function getCheckCount(exerciseId, day) {
@@ -252,6 +252,24 @@ async function _syncCheckToCloud(day, exerciseId) {
     });
   } catch (e) {
     console.warn('Supabase check sync failed:', e);
+  }
+}
+
+async function _syncCheckCountToCloud(day, exerciseId, count) {
+  try {
+    await fetch(`${SB_URL}/daily_checklist`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({
+        device_id: DEVICE_ID,
+        training_day: day,
+        exercise_id: exerciseId,
+        checked_at: new Date().toISOString(),
+        check_count: count,
+      }),
+    });
+  } catch (e) {
+    console.warn('Supabase check count sync failed:', e);
   }
 }
 
@@ -514,6 +532,15 @@ export async function syncFromCloud() {
         if (!local[c.exercise_id]) {
           local[c.exercise_id] = c.checked_at;
           localStorage.setItem(key, JSON.stringify(local));
+        }
+        if (c.check_count && c.check_count > 0) {
+          const countKey = `fitness_checkcount_${c.training_day}`;
+          const counts = JSON.parse(localStorage.getItem(countKey) || '{}');
+          const cloudCount = c.check_count;
+          if (!counts[c.exercise_id] || cloudCount > counts[c.exercise_id]) {
+            counts[c.exercise_id] = cloudCount;
+            localStorage.setItem(countKey, JSON.stringify(counts));
+          }
         }
       }
     }
