@@ -333,11 +333,17 @@ function _calcDayCalories(day) {
   const weight = _getBodyWeight();
   let total = 0;
   for (const ex of exercises) {
+    const met = EX_MET[ex.id] || 2.5;
+
     const sessions = store.getDaySessions(ex.id, day);
     for (const s of sessions) {
-      const met = EX_MET[ex.id] || 2.5;
       const mins = (s.durationSeconds || 0) / 60;
       total += met * weight * 3.5 / 200 * mins;
+    }
+
+    // For mode:null exercises with estimatedMinutes, count calories when checked
+    if (!ex.mode && ex.estimatedMinutes && sessions.length === 0 && store.isChecked(ex.id, day)) {
+      total += met * weight * 3.5 / 200 * ex.estimatedMinutes;
     }
   }
   return Math.round(total);
