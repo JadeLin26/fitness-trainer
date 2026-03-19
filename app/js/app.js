@@ -101,6 +101,7 @@ function renderList() {
               <div class="ex-card-sub">${_renderCardSummary(ex)}</div>
             </div>
             <div class="ex-card-status">
+              <span class="ex-time-label">${_renderTimeLabel(ex, pct, day)}</span>
               ${_renderCheckRing(pct)}
               <span class="expand-arrow">›</span>
             </div>
@@ -301,6 +302,42 @@ function _exProgress(ex, day) {
   if (ex.mode === 'timed_hold') return Math.min(hold / ((d.sets || 1) * (d.holdSec || 1)), 1);
   if (ex.mode === 'timed_reps') return Math.min(reps / ((d.sets || 1) * (d.repsPerSet || 1)), 1);
   return store.isChecked(ex.id, day) ? 1 : 0;
+}
+
+function _getLastSessionTime(ex, day) {
+  const sessions = store.getDaySessions(ex.id, day);
+  if (sessions.length > 0) {
+    const last = sessions[sessions.length - 1];
+    return last.ts ? new Date(last.ts) : null;
+  }
+  if (store.isChecked(ex.id, day)) {
+    const key = `fitness_check_${day}`;
+    try {
+      const checks = JSON.parse(localStorage.getItem(key) || '{}');
+      if (checks[ex.id]) return new Date(checks[ex.id]);
+    } catch {}
+  }
+  return null;
+}
+
+function _formatElapsed(ms) {
+  const totalMin = Math.floor(ms / 60000);
+  if (totalMin < 1) return '刚刚';
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}分钟前`;
+  return m > 0 ? `${h}小时${m}分前` : `${h}小时前`;
+}
+
+function _renderTimeLabel(ex, pct, day) {
+  const lastTime = _getLastSessionTime(ex, day);
+  if (!lastTime) return '';
+  if (pct >= 1) {
+    return lastTime.toTimeString().slice(0, 5);
+  }
+  const elapsed = Date.now() - lastTime.getTime();
+  if (elapsed < 0) return '';
+  return _formatElapsed(elapsed);
 }
 
 function _renderCheckRing(pct) {

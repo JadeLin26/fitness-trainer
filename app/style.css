@@ -175,8 +175,13 @@ body {
 .ex-card-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
+}
+.ex-time-label {
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
 }
 .check-ring {
   width: 28px; height: 28px;
