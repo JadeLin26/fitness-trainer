@@ -38,7 +38,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: true,
     hasScheduler: true,
-    dailyTarget: 200,
+    dailyTarget: 180,
     video: null,
     images: ['../images/wall_angel_demo.jpg'],
   },
