@@ -716,6 +716,184 @@ function _renderWeightHistory(log) {
   });
 }
 
+// --- Period panel ---
+let _periodMonthOffset = 0;
+
+function _openPeriod() {
+  _periodMonthOffset = 0;
+  $('.period-panel').style.display = '';
+  document.body.style.overflow = 'hidden';
+  _renderPeriodPage();
+}
+
+function _closePeriod() {
+  $('.period-panel').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function _getPeriodMonthDays(offset) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + offset;
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+
+  const startDay = first.getDay(); // 0=Sun
+  const totalDays = last.getDate();
+
+  const cells = [];
+  // Fill leading days from previous month
+  const prevLast = new Date(year, month, 0);
+  for (let i = startDay - 1; i >= 0; i--) {
+    const d = new Date(prevLast);
+    d.setDate(prevLast.getDate() - i);
+    cells.push({ date: _localDateStr(d), day: d.getDate(), thisMonth: false });
+  }
+  // Current month days
+  for (let d = 1; d <= totalDays; d++) {
+    const dt = new Date(year, month, d);
+    cells.push({ date: _localDateStr(dt), day: d, thisMonth: true });
+  }
+  // Fill trailing days
+  while (cells.length % 7 !== 0) {
+    const dt = new Date(year, month + 1, cells.length - startDay - totalDays + 1);
+    cells.push({ date: _localDateStr(dt), day: dt.getDate(), thisMonth: false });
+  }
+
+  return {
+    label: `${first.getFullYear()}年${first.getMonth() + 1}月`,
+    cells,
+  };
+}
+
+function _renderPeriodPage() {
+  const { label, cells } = _getPeriodMonthDays(_periodMonthOffset);
+  const today = store.trainingDay();
+  const periods = store.getPeriodLog();
+  const currentPeriod = store.getCurrentPeriod();
+
+  $('.period-month-label').textContent = label;
+
+  // Calendar
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  let html = '<table class="pcal-table"><thead><tr>';
+  for (const n of dayNames) html += `<th>${n}</th>`;
+  html += '</tr></thead><tbody>';
+
+  for (let r = 0; r < cells.length; r += 7) {
+    html += '<tr>';
+    for (let c = 0; c < 7; c++) {
+      const cell = cells[r + c];
+      const isPeriod = store.isPeriodDay(cell.date);
+      const isStart = periods.some(p => p.startDate === cell.date);
+      const isToday = cell.date === today;
+      const cls = [
+        'pcal-day',
+        !cell.thisMonth ? 'other-month' : '',
+        isStart ? 'period-start' : isPeriod ? 'period' : '',
+        isToday ? 'today' : '',
+      ].filter(Boolean).join(' ');
+      html += `<td><span class="${cls}" data-date="${cell.date}">${cell.day}</span></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table>';
+  $('.period-calendar').innerHTML = html;
+
+  // Legend
+  let legendHtml = '<div style="display:flex;gap:16px;padding:8px 16px;font-size:12px;color:var(--text2)">';
+  legendHtml += '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#E91E63;margin-right:4px"></span>经期开始</span>';
+  legendHtml += '<span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FCE4EC;margin-right:4px"></span>经期</span>';
+  legendHtml += '</div>';
+
+  // Info card
+  let infoHtml = '<div class="period-info-card">';
+  if (currentPeriod) {
+    const startD = new Date(currentPeriod.startDate + 'T12:00:00');
+    const endD = new Date(currentPeriod.endDate + 'T12:00:00');
+    const daysPassed = Math.floor((new Date(today + 'T12:00:00') - startD) / 86400000) + 1;
+    const totalDays = Math.floor((endD - startD) / 86400000) + 1;
+    infoHtml += `<div style="font-size:15px;font-weight:600;color:#C2185B;margin-bottom:8px">经期进行中 · 第${daysPassed}天</div>`;
+    infoHtml += `<div style="font-size:13px;color:var(--text2)">${currentPeriod.startDate} ~ ${currentPeriod.endDate}（共${totalDays}天）</div>`;
+  } else if (periods.length > 0) {
+    const last = periods[periods.length - 1];
+    const lastEnd = new Date(last.endDate + 'T12:00:00');
+    const todayD = new Date(today + 'T12:00:00');
+    const daysSince = Math.floor((todayD - lastEnd) / 86400000);
+    infoHtml += `<div style="font-size:15px;font-weight:600;margin-bottom:8px">距上次经期结束 ${daysSince} 天</div>`;
+    if (periods.length >= 2) {
+      let totalCycle = 0;
+      for (let i = 1; i < periods.length; i++) {
+        const prev = new Date(periods[i - 1].startDate + 'T12:00:00');
+        const curr = new Date(periods[i].startDate + 'T12:00:00');
+        totalCycle += Math.floor((curr - prev) / 86400000);
+      }
+      const avgCycle = Math.round(totalCycle / (periods.length - 1));
+      infoHtml += `<div style="font-size:13px;color:var(--text2)">平均周期 ${avgCycle} 天</div>`;
+    }
+  } else {
+    infoHtml += '<div style="font-size:13px;color:var(--text2)">还没有经期记录，点击下方按钮开始记录</div>';
+  }
+  infoHtml += '</div>';
+  $('.period-info').innerHTML = legendHtml + infoHtml;
+
+  // Action buttons
+  let actHtml = '';
+  if (currentPeriod) {
+    actHtml = `<button class="btn-period-end" data-start="${currentPeriod.startDate}">经期已结束</button>`;
+  } else {
+    actHtml = `<button class="btn-period-start">记录经期开始</button>`;
+  }
+  $('.period-actions').innerHTML = actHtml;
+
+  // Bind action buttons
+  $('.period-actions').querySelector('.btn-period-start')?.addEventListener('click', () => {
+    store.addPeriod(today);
+    _renderPeriodPage();
+  });
+  $('.period-actions').querySelector('.btn-period-end')?.addEventListener('click', (e) => {
+    const startDate = e.target.dataset.start;
+    store.endPeriodEarly(startDate, today);
+    _renderPeriodPage();
+  });
+
+  // Bind calendar day click to toggle period start
+  $('.period-calendar').querySelectorAll('.pcal-day[data-date]').forEach(el => {
+    el.addEventListener('click', () => {
+      const date = el.dataset.date;
+      const existingPeriod = periods.find(p => p.startDate === date);
+      if (existingPeriod) return;
+      if (store.isPeriodDay(date)) return;
+      store.addPeriod(date);
+      _renderPeriodPage();
+    });
+  });
+
+  // History
+  let histHtml = '';
+  if (periods.length > 0) {
+    histHtml = '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">历史记录</div>';
+    const recent = [...periods].reverse();
+    for (const p of recent) {
+      const startD = new Date(p.startDate + 'T12:00:00');
+      const endD = new Date(p.endDate + 'T12:00:00');
+      const days = Math.floor((endD - startD) / 86400000) + 1;
+      histHtml += `<div class="ph-item">
+        <span class="ph-dates">${p.startDate} ~ ${p.endDate}</span>
+        <span class="ph-duration">${days}天</span>
+        <button class="ph-del" data-start="${p.startDate}" title="删除">✕</button>
+      </div>`;
+    }
+  }
+  $('.period-history').innerHTML = histHtml;
+  $('.period-history').querySelectorAll('.ph-del').forEach(btn => {
+    btn.addEventListener('click', () => {
+      store.deletePeriod(btn.dataset.start);
+      _renderPeriodPage();
+    });
+  });
+}
+
 function _renderStats() {
   const weekDays = _getWeekDays(_weekOffset);
   const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
@@ -745,7 +923,9 @@ function _renderStats() {
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDays[i].slice(8);
     const isToday = i === todayIdx;
-    heatHtml += `<th class="${isToday ? 'today' : ''}">${dayNames[i]}<br><span class="hm-date">${dateStr}</span></th>`;
+    const isPeriod = store.isPeriodDay(weekDays[i]);
+    const thCls = [isToday ? 'today' : '', isPeriod ? 'period-day' : ''].filter(Boolean).join(' ');
+    heatHtml += `<th class="${thCls}">${dayNames[i]}<br><span class="hm-date">${dateStr}</span></th>`;
   }
   heatHtml += '</tr></thead><tbody>';
 
@@ -923,6 +1103,12 @@ export function init() {
       renderList();
     });
   });
+
+  // Period button
+  $('.btn-period')?.addEventListener('click', () => _openPeriod());
+  $('.period-back')?.addEventListener('click', () => _closePeriod());
+  $('.period-prev')?.addEventListener('click', () => { _periodMonthOffset--; _renderPeriodPage(); });
+  $('.period-next')?.addEventListener('click', () => { _periodMonthOffset++; _renderPeriodPage(); });
 
   // Weight button
   $('.btn-weight')?.addEventListener('click', () => _openWeight());

@@ -353,6 +353,77 @@ export function getProfile() {
   return PROFILE;
 }
 
+// --- Period tracking ---
+const PERIOD_KEY = 'fitness_period_log';
+
+function _loadPeriods() {
+  try { return JSON.parse(localStorage.getItem(PERIOD_KEY)) || []; }
+  catch { return []; }
+}
+
+function _savePeriods(log) {
+  localStorage.setItem(PERIOD_KEY, JSON.stringify(log));
+}
+
+export function getPeriodLog() { return _loadPeriods(); }
+
+export function addPeriod(startDate) {
+  const log = _loadPeriods();
+  const endDate = _addDays(startDate, 6);
+  log.push({ startDate, endDate });
+  log.sort((a, b) => a.startDate.localeCompare(b.startDate));
+  _savePeriods(log);
+  _syncPeriodToCloud(startDate, endDate);
+}
+
+export function endPeriodEarly(startDate, endDate) {
+  const log = _loadPeriods();
+  const rec = log.find(p => p.startDate === startDate);
+  if (rec) {
+    rec.endDate = endDate;
+    _savePeriods(log);
+    _syncPeriodToCloud(startDate, endDate);
+  }
+}
+
+export function deletePeriod(startDate) {
+  const log = _loadPeriods().filter(p => p.startDate !== startDate);
+  _savePeriods(log);
+}
+
+export function isPeriodDay(dateStr) {
+  for (const p of _loadPeriods()) {
+    if (dateStr >= p.startDate && dateStr <= p.endDate) return true;
+  }
+  return false;
+}
+
+export function getCurrentPeriod() {
+  const today = _trainingDay();
+  for (const p of _loadPeriods()) {
+    if (today >= p.startDate && today <= p.endDate) return p;
+  }
+  return null;
+}
+
+function _addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return _localDateStr(d);
+}
+
+async function _syncPeriodToCloud(startDate, endDate) {
+  try {
+    await fetch(`${SB_URL}/period_log`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ device_id: DEVICE_ID, start_date: startDate, end_date: endDate }),
+    });
+  } catch (e) {
+    console.warn('Period cloud sync failed:', e);
+  }
+}
+
 export async function syncFromCloud() {
   try {
     const res = await fetch(`${SB_URL}/training_sessions?order=created_at.asc`, {
@@ -422,6 +493,33 @@ export async function syncFromCloud() {
         if (merged) {
           local.sort((a, b) => a.ts.localeCompare(b.ts));
           localStorage.setItem(WEIGHT_KEY, JSON.stringify(local));
+        }
+      }
+    }
+    // Sync period log
+    const res4 = await fetch(`${SB_URL}/period_log?order=start_date.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (res4.ok) {
+      const cloudPeriods = await res4.json();
+      if (cloudPeriods?.length) {
+        const local = _loadPeriods();
+        let merged = false;
+        for (const p of cloudPeriods) {
+          if (!local.some(l => l.startDate === p.start_date)) {
+            local.push({ startDate: p.start_date, endDate: p.end_date });
+            merged = true;
+          } else {
+            const existing = local.find(l => l.startDate === p.start_date);
+            if (existing && existing.endDate !== p.end_date) {
+              existing.endDate = p.end_date;
+              merged = true;
+            }
+          }
+        }
+        if (merged) {
+          local.sort((a, b) => a.startDate.localeCompare(b.startDate));
+          _savePeriods(local);
         }
       }
     }
