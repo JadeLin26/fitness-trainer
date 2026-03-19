@@ -349,8 +349,10 @@ export async function deleteWeight(idx) {
 
 async function _deleteWeightFromCloud(ts) {
   try {
-    const prefix = ts.slice(0, 19);
-    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=like.${encodeURIComponent(prefix + '*')}`, {
+    const d = new Date(ts);
+    const lo = new Date(d.getTime() - 1000).toISOString();
+    const hi = new Date(d.getTime() + 1000).toISOString();
+    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=gte.${lo}&created_at=lte.${hi}`, {
       method: 'DELETE',
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
