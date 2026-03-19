@@ -231,6 +231,42 @@ export function getCheckCount(exerciseId, day) {
   return getDaySessions(exerciseId, day).length;
 }
 
+// Migrate old fitness_checkcount_ data to training_sessions
+(function _migrateOldCheckCounts() {
+  const migKey = 'fitness_checkcount_migrated';
+  if (localStorage.getItem(migKey)) return;
+  const data = _load();
+  let changed = false;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k?.startsWith('fitness_checkcount_')) continue;
+    const day = k.replace('fitness_checkcount_', '');
+    try {
+      const counts = JSON.parse(localStorage.getItem(k) || '{}');
+      const checkKey = `fitness_check_${day}`;
+      const checkData = JSON.parse(localStorage.getItem(checkKey) || '{}');
+      for (const [exId, count] of Object.entries(counts)) {
+        if (!data[day]) data[day] = {};
+        const existing = (data[day][exId] || []).length;
+        if (existing >= count) continue;
+        if (!data[day][exId]) data[day][exId] = [];
+        const baseTs = checkData[exId] ? new Date(checkData[exId]) : new Date(day + 'T12:00:00');
+        for (let n = existing; n < count; n++) {
+          const ts = new Date(baseTs.getTime() - (count - 1 - n) * 60000);
+          data[day][exId].push({
+            time: ts.toTimeString().slice(0, 5),
+            totalReps: 1, sessionKind: 'check',
+            ts: ts.toISOString(),
+          });
+        }
+        changed = true;
+      }
+    } catch {}
+  }
+  if (changed) _save(data);
+  localStorage.setItem(migKey, '1');
+})();
+
 async function _syncCheckToCloud(day, exerciseId) {
   try {
     await fetch(`${SB_URL}/daily_checklist`, {

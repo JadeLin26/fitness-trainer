@@ -313,6 +313,7 @@ function _getLastSessionTime(ex, day) {
       return new Date(withTs[withTs.length - 1].ts);
     }
   }
+  if (ex.dailyCheckTarget) return null;
   if (store.isChecked(ex.id, day)) {
     const key = `fitness_check_${day}`;
     try {
