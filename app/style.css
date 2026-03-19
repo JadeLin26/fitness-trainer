@@ -895,6 +895,9 @@ body {
   align-items: center;
   gap: 12px;
   padding: 8px 18px 14px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
 }
 .check-count {
   font-size: 18px;
