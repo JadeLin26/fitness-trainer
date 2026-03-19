@@ -307,8 +307,11 @@ function _exProgress(ex, day) {
 function _getLastSessionTime(ex, day) {
   const sessions = store.getDaySessions(ex.id, day);
   if (sessions.length > 0) {
-    const last = sessions[sessions.length - 1];
-    return last.ts ? new Date(last.ts) : null;
+    const withTs = sessions.filter(s => s.ts);
+    if (withTs.length > 0) {
+      withTs.sort((a, b) => a.ts.localeCompare(b.ts));
+      return new Date(withTs[withTs.length - 1].ts);
+    }
   }
   if (store.isChecked(ex.id, day)) {
     const key = `fitness_check_${day}`;
@@ -333,7 +336,9 @@ function _renderTimeLabel(ex, pct, day) {
   const lastTime = _getLastSessionTime(ex, day);
   if (!lastTime) return '';
   if (pct >= 1) {
-    return lastTime.toTimeString().slice(0, 5);
+    const hh = String(lastTime.getHours()).padStart(2, '0');
+    const mm = String(lastTime.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
   }
   const elapsed = Date.now() - lastTime.getTime();
   if (elapsed < 0) return '';
