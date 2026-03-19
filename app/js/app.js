@@ -125,14 +125,13 @@ function renderList() {
               ${ex.details ? `<div class="ex-details">${ex.details.replace(/\n/g, '<br>')}</div>` : ''}
               ${mediaHtml}
               ${ex.externalVideo ? `<a class="btn-video-link" href="${ex.externalVideo}" target="_blank" rel="noopener">📺 打开跟练视频</a>` : ''}
-              ${ex.dailyCheckTarget
-                ? `<div class="check-counter">
-                    <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
-                    <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
-                  </div>`
-                : `<button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>`}
+              ${!ex.dailyCheckTarget ? `<button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>` : ''}
             </div>
           </div>`}
+          ${ex.dailyCheckTarget ? `<div class="check-counter-outer">
+            <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
+            <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
+          </div>` : ''}
         </div>`;
     }
   }

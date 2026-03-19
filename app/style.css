@@ -890,6 +890,12 @@ body {
   gap: 12px;
   margin-top: 8px;
 }
+.check-counter-outer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px 14px;
+}
 .check-count {
   font-size: 18px;
   font-weight: 700;
