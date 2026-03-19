@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitness-v3';
+const CACHE_NAME = 'fitness-v4';
 
 const PRECACHE = [
   '/app/index.html',
@@ -59,18 +59,14 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Stale-while-revalidate for app shell
+  // Network-first for app shell (JS/CSS/HTML), fall back to cache when offline
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const fetching = fetch(e.request).then(res => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
-        }
-        return res;
-      }).catch(() => cached);
-
-      return cached || fetching;
-    })
+    fetch(e.request).then(res => {
+      if (res.ok) {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
