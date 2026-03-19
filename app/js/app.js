@@ -204,13 +204,11 @@ function _completionRatio(ex, dayReps, dayHold, checked, checkCount) {
 
 function _renderHeatDot(ratio) {
   if (ratio <= 0) return '';
-  const full = ratio >= 1;
-  if (full) {
+  if (ratio >= 1) {
     return `<span class="hm-full">✓</span>`;
   }
-  const R = 10;
-  const r = Math.sqrt(ratio) * R;
-  return `<svg class="hm-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="${r.toFixed(1)}" fill="#4CAF50" opacity="0.7"/></svg>`;
+  const pct = Math.round(ratio * 100);
+  return `<div class="hm-bar"><div class="hm-bar-fill" style="width:${pct}%"></div></div>`;
 }
 
 function _estimateMinutes(ex) {
