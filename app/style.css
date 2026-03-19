@@ -380,6 +380,35 @@ body {
   margin-top: 24px;
   text-align: center;
 }
+.training-overall {
+  margin-bottom: 10px;
+}
+.training-progress-bar {
+  width: 80%;
+  max-width: 300px;
+  height: 6px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 3px;
+  margin: 0 auto 6px;
+  overflow: hidden;
+}
+.training-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+.training-progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text1);
+}
+.training-remaining {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 2px;
+}
 .training-progress-text {
   font-size: 15px;
   color: var(--text2);

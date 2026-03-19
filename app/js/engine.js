@@ -14,13 +14,68 @@ let _exercise = null;
 let _onUpdate = null;    // callback: (stateInfo) => void
 let _startTime = null;
 let _partialResult = 0;
+let _priorReps = 0;
+let _priorHold = 0;
+let _totalSets = 1;
+let _startSet = 1;
 
 // Public state
 export function getState() { return _state; }
 export function isRunning() { return _state !== 'idle' && _state !== 'done'; }
 
+function _estimateRemaining(ex, currentSet, currentRepInSet) {
+  const d = ex.defaults;
+  const sets = d.sets || 1;
+  const rest = d.rest || 0;
+  let sec = 0;
+  if (ex.mode === 'counted_reps') {
+    const reps = d.reps || 1;
+    const tempo = d.tempo || 2;
+    const repsLeft = reps - (currentRepInSet || 0);
+    sec += repsLeft * tempo;
+    const setsAfter = sets - currentSet;
+    sec += setsAfter * (reps * tempo + rest);
+  } else if (ex.mode === 'timed_hold') {
+    const holdSec = d.holdSec || 1;
+    sec += holdSec;
+    const setsAfter = sets - currentSet;
+    sec += setsAfter * (holdSec + rest);
+  } else if (ex.mode === 'timed_reps') {
+    const repsPerSet = d.repsPerSet || 1;
+    const holdSec = d.holdSec || 5;
+    const restRep = d.restRep || 0;
+    const repTime = holdSec + restRep;
+    const repsLeft = repsPerSet - (currentRepInSet || 0);
+    sec += repsLeft * repTime;
+    const setsAfter = sets - currentSet;
+    sec += setsAfter * (repsPerSet * repTime + rest);
+  }
+  return Math.max(0, Math.round(sec));
+}
+
 function _emit(info) {
-  if (_onUpdate) _onUpdate({ state: _state, exercise: _exercise?.id, ...info });
+  const ex = _exercise;
+  const d = ex?.defaults || {};
+  let overallDone = 0, overallTotal = 0;
+  if (ex?.mode === 'counted_reps') {
+    overallTotal = (d.sets || 1) * (d.reps || 1);
+    overallDone = _priorReps + (_partialResult || 0);
+  } else if (ex?.mode === 'timed_hold') {
+    overallTotal = (d.sets || 1) * (d.holdSec || 1);
+    overallDone = _priorHold + (_partialResult || 0);
+  } else if (ex?.mode === 'timed_reps') {
+    overallTotal = (d.sets || 1) * (d.repsPerSet || 1);
+    overallDone = _priorReps + (_partialResult || 0);
+  }
+  const overallProgress = overallTotal > 0 ? Math.min(overallDone / overallTotal, 1) : 0;
+  const remainSec = _estimateRemaining(ex, info.set || _startSet, info.rep || 0);
+  if (_onUpdate) _onUpdate({
+    state: _state, exercise: ex?.id,
+    overallProgress, overallDone, overallTotal,
+    overallSet: info.set || _startSet, overallTotalSets: _totalSets,
+    remainingSeconds: remainSec,
+    ...info,
+  });
 }
 
 function _sleep(ms) {
@@ -77,12 +132,12 @@ async function _runPrep(ex) {
 }
 
 // --- Counted reps mode (wall angel, shaker dyn) ---
-async function _runCountedReps(ex) {
+async function _runCountedReps(ex, startSet = 1) {
   _state = 'active';
   const { sets, reps, tempo, rest } = ex.defaults;
   let totalDone = 0;
 
-  for (let s = 1; s <= sets; s++) {
+  for (let s = startSet; s <= sets; s++) {
     await _checkCancel();
 
     // Set announcement
@@ -146,12 +201,12 @@ async function _runCountedReps(ex) {
 }
 
 // --- Timed hold mode (shaker iso, subman push) ---
-async function _runTimedHold(ex) {
+async function _runTimedHold(ex, startSet = 1) {
   _state = 'active';
   const { sets, holdSec, rest } = ex.defaults;
   let totalHold = 0;
 
-  for (let s = 1; s <= sets; s++) {
+  for (let s = startSet; s <= sets; s++) {
     await _checkCancel();
 
     if (sets > 1 && ex.hasSetAnnounce) {
@@ -210,12 +265,12 @@ async function _runTimedHold(ex) {
 }
 
 // --- Timed reps mode (FESM, chin tuck) ---
-async function _runTimedReps(ex) {
+async function _runTimedReps(ex, startSet = 1) {
   _state = 'active';
   const { sets, repsPerSet, holdSec, restRep, rest } = ex.defaults;
   let totalReps = 0;
 
-  for (let s = 1; s <= sets; s++) {
+  for (let s = startSet; s <= sets; s++) {
     await _checkCancel();
 
     if (sets > 1 && ex.hasSetAnnounce) {
@@ -284,7 +339,7 @@ async function _runTimedReps(ex) {
 
 // --- Public API ---
 
-export async function startExercise(exercise, onUpdate) {
+export async function startExercise(exercise, onUpdate, { startSet = 1, priorReps = 0, priorHold = 0 } = {}) {
   if (isRunning()) return;
   _exercise = exercise;
   _onUpdate = onUpdate;
@@ -292,17 +347,21 @@ export async function startExercise(exercise, onUpdate) {
   _pauseFlag = false;
   _startTime = Date.now();
   _partialResult = 0;
+  _priorReps = priorReps;
+  _priorHold = priorHold;
+  _totalSets = exercise.defaults.sets || 1;
+  _startSet = startSet;
 
   try {
     await _runPrep(exercise);
     let result;
 
     if (exercise.mode === 'counted_reps') {
-      result = await _runCountedReps(exercise);
+      result = await _runCountedReps(exercise, startSet);
     } else if (exercise.mode === 'timed_hold') {
-      result = await _runTimedHold(exercise);
+      result = await _runTimedHold(exercise, startSet);
     } else if (exercise.mode === 'timed_reps') {
-      result = await _runTimedReps(exercise);
+      result = await _runTimedReps(exercise, startSet);
     }
 
     bgm.stop();

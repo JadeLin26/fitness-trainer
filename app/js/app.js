@@ -458,9 +458,30 @@ function _startTraining(ex) {
   btnPause.style.display = '';
   btnResume.style.display = 'none';
 
+  const day = store.trainingDay();
+  const d = ex.defaults;
+  const priorReps = store.getDayTotalReps(ex.id, day);
+  const priorHold = store.getDayTotalHoldSec(ex.id, day);
+  let startSet = 1;
+  if (ex.mode === 'counted_reps' && d.reps) {
+    startSet = Math.floor(priorReps / d.reps) + 1;
+  } else if (ex.mode === 'timed_hold' && d.holdSec) {
+    startSet = Math.floor(priorHold / d.holdSec) + 1;
+  } else if (ex.mode === 'timed_reps' && d.repsPerSet) {
+    startSet = Math.floor(priorReps / d.repsPerSet) + 1;
+  }
+  if (startSet > (d.sets || 1)) startSet = 1;
+
   engine.startExercise(ex, info => {
     _updateTrainingUI(info, ex);
-  });
+  }, { startSet, priorReps, priorHold });
+}
+
+function _fmtTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m > 0) return `${m}分${s > 0 ? s + '秒' : ''}`;
+  return `${s}秒`;
 }
 
 function _updateTrainingUI(info, ex) {
@@ -471,6 +492,19 @@ function _updateTrainingUI(info, ex) {
   const circ = 2 * Math.PI * 100;
 
   if (!numEl) return;
+
+  const fill = $('.training-progress-fill');
+  const pLabel = $('.training-progress-label');
+  const remEl = $('.training-remaining');
+  if (fill && info.overallProgress !== undefined) {
+    fill.style.width = `${Math.round(info.overallProgress * 100)}%`;
+  }
+  if (pLabel && info.overallSet !== undefined) {
+    pLabel.textContent = `第${info.overallSet}组/共${info.overallTotalSets}组 · ${info.overallDone}/${info.overallTotal}`;
+  }
+  if (remEl && info.remainingSeconds !== undefined && info.phase !== 'done' && info.phase !== 'cancelled') {
+    remEl.textContent = `剩余 ${_fmtTime(info.remainingSeconds)}`;
+  }
 
   if (info.phase === 'prep') {
     numEl.textContent = info.remaining;
@@ -538,6 +572,9 @@ function _updateTrainingUI(info, ex) {
     const dm = Math.floor(info.duration / 60);
     const ds = info.duration % 60;
     progressEl.textContent = `用时 ${dm > 0 ? dm + '分' : ''}${ds}秒`;
+    if (fill) fill.style.width = '100%';
+    if (pLabel) pLabel.textContent = '全部完成！';
+    if (remEl) remEl.textContent = '';
     setTimeout(() => _closeOverlay(), 2500);
   }
   else if (info.phase === 'cancelled') {
@@ -549,6 +586,9 @@ function _closeOverlay() {
   $('.training-overlay').classList.remove('active');
   $('.ring-number').style.color = '';
   $('.training-tips').innerHTML = '';
+  $('.training-progress-fill').style.width = '0%';
+  $('.training-progress-label').textContent = '';
+  $('.training-remaining').textContent = '';
   engine.reset();
   renderList();
 }
