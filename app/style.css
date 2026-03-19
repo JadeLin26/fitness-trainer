@@ -873,6 +873,31 @@ body {
 }
 .btn-check:active { opacity: 0.8; }
 
+.check-counter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.check-count {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text1);
+  min-width: 60px;
+}
+.btn-check-inc {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-check-inc:active { opacity: 0.8; }
+
 /* External video link */
 .btn-video-link {
   display: block;

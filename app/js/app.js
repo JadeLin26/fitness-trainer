@@ -124,7 +124,12 @@ function renderList() {
               ${ex.details ? `<div class="ex-details">${ex.details.replace(/\n/g, '<br>')}</div>` : ''}
               ${mediaHtml}
               ${ex.externalVideo ? `<a class="btn-video-link" href="${ex.externalVideo}" target="_blank" rel="noopener">📺 打开跟练视频</a>` : ''}
-              <button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>
+              ${ex.dailyCheckTarget
+                ? `<div class="check-counter">
+                    <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
+                    <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
+                  </div>`
+                : `<button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>`}
             </div>
           </div>`}
         </div>`;
@@ -152,6 +157,13 @@ function renderList() {
       renderList();
     });
   });
+  list.querySelectorAll('.btn-check-inc[data-id]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      store.incrementCheck(btn.dataset.id, store.trainingDay());
+      renderList();
+    });
+  });
 
   _updateProgressSummary();
 }
@@ -169,7 +181,8 @@ function _renderParams(ex) {
   return parts.map(p => `<span class="ex-param">${p}</span>`).join('');
 }
 
-function _completionRatio(ex, dayReps, dayHold, checked) {
+function _completionRatio(ex, dayReps, dayHold, checked, checkCount) {
+  if (ex.dailyCheckTarget) return Math.min((checkCount || 0) / ex.dailyCheckTarget, 1);
   if (!ex.mode) return checked ? 1 : 0;
   const d = ex.defaults;
   let target, actual;
@@ -233,6 +246,10 @@ function _estimateMinutes(ex) {
 }
 
 function _renderCardSummary(ex) {
+  if (ex.dailyCheckTarget) {
+    const cnt = store.getCheckCount(ex.id, store.trainingDay());
+    return `今日 ${cnt}/${ex.dailyCheckTarget} · ${ex.subtitle || ''}`;
+  }
   if (!ex.mode) return ex.subtitle;
   const d = ex.defaults;
   const parts = [];
@@ -263,10 +280,16 @@ function _isExDone(ex, day) {
     const reps = store.getDayTotalReps(ex.id, day);
     return reps >= ex.dailyTarget;
   }
+  if (ex.dailyCheckTarget) {
+    return store.getCheckCount(ex.id, day) >= ex.dailyCheckTarget;
+  }
   return store.isChecked(ex.id, day);
 }
 
 function _exProgress(ex, day) {
+  if (ex.dailyCheckTarget) {
+    return Math.min(store.getCheckCount(ex.id, day) / ex.dailyCheckTarget, 1);
+  }
   if (!ex.mode) return store.isChecked(ex.id, day) ? 1 : 0;
   if (ex.dailyTarget) {
     return Math.min(store.getDayTotalReps(ex.id, day) / ex.dailyTarget, 1);
@@ -345,7 +368,7 @@ function _updateProgressSummary() {
   const pct = total ? Math.round(done / total * 100) : 0;
 
   $('.progress-value').textContent = `${done}/${total}`;
-  $('.progress-label').textContent = `今日完成 ${pct}%`;
+  $('.progress-label').textContent = `每日必做 ${pct}%`;
 
   const circ = 2 * Math.PI * 18;
   const offset = circ * (1 - pct / 100);
@@ -734,15 +757,18 @@ function _renderStats() {
         const count = sessions.length;
         const reps = sessions.reduce((s, e) => s + (e.totalReps || 0), 0);
         const hold = sessions.reduce((s, e) => s + (e.holdSeconds || 0), 0);
-        exWeekCount += count;
+        const checkCount = store.getCheckCount(ex.id, dayKey);
+        exWeekCount += count + (checkCount > 0 ? checkCount : 0);
         exWeekReps += reps;
         exWeekHold += hold;
 
-        const ratio = _completionRatio(ex, reps, hold, checked);
+        const ratio = _completionRatio(ex, reps, hold, checked, checkCount);
         const isToday = weekDays[i] === store.trainingDay();
-        const tooltip = count > 0
-          ? `${count}次${reps ? ' ' + reps + '次' : ''}${hold ? ' ' + hold + '秒' : ''} (${Math.round(ratio * 100)}%)`
-          : checked ? '已打勾 (100%)' : '';
+        const tooltip = ex.dailyCheckTarget
+          ? (checkCount > 0 ? `打卡 ${checkCount}/${ex.dailyCheckTarget} (${Math.round(ratio * 100)}%)` : '')
+          : count > 0
+            ? `${count}次${reps ? ' ' + reps + '次' : ''}${hold ? ' ' + hold + '秒' : ''} (${Math.round(ratio * 100)}%)`
+            : checked ? '已打勾 (100%)' : '';
 
         heatHtml += `<td class="hm-cell ${isToday ? 'today' : ''}" data-day="${dayKey}" title="${tooltip}">`;
         heatHtml += _renderHeatDot(ratio);

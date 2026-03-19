@@ -223,6 +223,21 @@ export function markChecked(exerciseId, day) {
   _syncCheckToCloud(day, exerciseId);
 }
 
+export function incrementCheck(exerciseId, day) {
+  const key = `fitness_checkcount_${day}`;
+  const counts = JSON.parse(localStorage.getItem(key) || '{}');
+  counts[exerciseId] = (counts[exerciseId] || 0) + 1;
+  localStorage.setItem(key, JSON.stringify(counts));
+
+  _syncCheckToCloud(day, exerciseId);
+}
+
+export function getCheckCount(exerciseId, day) {
+  const key = `fitness_checkcount_${day}`;
+  const counts = JSON.parse(localStorage.getItem(key) || '{}');
+  return counts[exerciseId] || 0;
+}
+
 async function _syncCheckToCloud(day, exerciseId) {
   try {
     await fetch(`${SB_URL}/daily_checklist`, {
