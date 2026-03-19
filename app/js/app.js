@@ -106,6 +106,10 @@ function renderList() {
               <span class="expand-arrow">›</span>
             </div>
           </div>
+          ${ex.dailyCheckTarget ? `<div class="check-bar">
+            <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
+            <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
+          </div>` : ''}
           ${ex.mode ? `
           <div class="ex-card-detail">
             <div class="ex-detail-inner">
@@ -128,10 +132,6 @@ function renderList() {
               ${!ex.dailyCheckTarget ? `<button class="btn-check" data-id="${ex.id}">✓ 打勾完成</button>` : ''}
             </div>
           </div>`}
-          ${ex.dailyCheckTarget ? `<div class="check-counter-outer">
-            <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
-            <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
-          </div>` : ''}
         </div>`;
     }
   }
