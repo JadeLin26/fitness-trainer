@@ -549,12 +549,12 @@ function _localDateStr(d) {
 
 function _getWeekDays(offset = 0) {
   const now = new Date();
-  const day = now.getDay() || 7;
-  const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1 + offset * 7);
+  const dow = now.getDay(); // 0=Sun
+  const sun = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow + offset * 7);
   const days = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(mon);
-    d.setDate(mon.getDate() + i);
+    const d = new Date(sun);
+    d.setDate(sun.getDate() + i);
     days.push(_localDateStr(d));
   }
   return days;
@@ -1016,7 +1016,7 @@ function _renderPeriodPage() {
 
 function _renderStats() {
   const weekDays = _getWeekDays(_weekOffset);
-  const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
   const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
   const allExercises = exercises;
 
