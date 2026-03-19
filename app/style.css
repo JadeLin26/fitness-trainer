@@ -542,6 +542,7 @@ body {
   font-size: 14px;
 }
 .wh-kg { font-weight: 700; font-size: 16px; }
+.wh-bmi { font-size: 12px; font-weight: 600; }
 .wh-time { color: var(--text2); font-size: 12px; }
 .wh-del {
   background: none;

@@ -655,13 +655,19 @@ function _renderWeightChart(log) {
     return;
   }
 
-  const pad = { top: 20, right: 16, bottom: 30, left: 42 };
+  const BMI_NORMAL_LO = 18.5, BMI_NORMAL_HI = 24;
+  const BMI_OVERWEIGHT = 28;
+  const kgNormalLo = store.bmiToKg(BMI_NORMAL_LO);
+  const kgNormalHi = store.bmiToKg(BMI_NORMAL_HI);
+
+  const pad = { top: 20, right: 44, bottom: 30, left: 42 };
   const cw = W - pad.left - pad.right;
   const ch = H - pad.top - pad.bottom;
 
   const weights = log.map(e => e.kg);
-  let minW = Math.min(...weights), maxW = Math.max(...weights);
-  if (maxW - minW < 1) { minW -= 0.5; maxW += 0.5; }
+  let minW = Math.min(...weights, kgNormalLo - 1);
+  let maxW = Math.max(...weights, kgNormalHi + 1);
+  if (maxW - minW < 2) { minW -= 1; maxW += 1; }
   const range = maxW - minW || 1;
 
   const timestamps = log.map(e => new Date(e.ts).getTime());
@@ -670,11 +676,30 @@ function _renderWeightChart(log) {
 
   const toX = (i) => pad.left + ((timestamps[i] - tMin) / tRange) * cw;
   const toY = (kg) => pad.top + (1 - (kg - minW) / range) * ch;
+  const kgToBmi = (kg) => store.calcBMI(kg);
 
-  // Grid lines
+  // BMI normal range green band
+  const bandTop = Math.max(toY(kgNormalHi), pad.top);
+  const bandBot = Math.min(toY(kgNormalLo), pad.top + ch);
+  if (bandBot > bandTop) {
+    ctx.fillStyle = 'rgba(76,175,80,0.10)';
+    ctx.fillRect(pad.left, bandTop, cw, bandBot - bandTop);
+    ctx.strokeStyle = 'rgba(76,175,80,0.30)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    [bandTop, bandBot].forEach(y => {
+      ctx.beginPath();
+      ctx.moveTo(pad.left, y);
+      ctx.lineTo(W - pad.right, y);
+      ctx.stroke();
+    });
+    ctx.setLineDash([]);
+  }
+
+  // Grid lines + left axis (kg)
   ctx.strokeStyle = '#eee';
   ctx.lineWidth = 1;
-  const steps = 4;
+  const steps = 5;
   for (let i = 0; i <= steps; i++) {
     const y = pad.top + (i / steps) * ch;
     const val = maxW - (i / steps) * range;
@@ -682,13 +707,34 @@ function _renderWeightChart(log) {
     ctx.moveTo(pad.left, y);
     ctx.lineTo(W - pad.right, y);
     ctx.stroke();
-    ctx.fillStyle = '#999';
+    ctx.fillStyle = '#666';
     ctx.font = '11px system-ui';
     ctx.textAlign = 'right';
     ctx.fillText(val.toFixed(1), pad.left - 6, y + 4);
   }
 
-  // Date labels — evenly spaced along the time axis
+  // Right axis (BMI)
+  ctx.textAlign = 'left';
+  for (let i = 0; i <= steps; i++) {
+    const val = maxW - (i / steps) * range;
+    const bmi = kgToBmi(val);
+    const y = pad.top + (i / steps) * ch;
+    const color = (bmi >= BMI_NORMAL_LO && bmi <= BMI_NORMAL_HI) ? '#4CAF50' :
+                  (bmi > BMI_OVERWEIGHT) ? '#F44336' : '#FF9800';
+    ctx.fillStyle = color;
+    ctx.font = '10px system-ui';
+    ctx.fillText(bmi.toFixed(1), W - pad.right + 6, y + 4);
+  }
+
+  // Axis labels
+  ctx.fillStyle = '#999';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText('kg', pad.left - 6, pad.top - 6);
+  ctx.textAlign = 'left';
+  ctx.fillText('BMI', W - pad.right + 4, pad.top - 6);
+
+  // Date labels
   ctx.fillStyle = '#999';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
@@ -700,33 +746,49 @@ function _renderWeightChart(log) {
     ctx.fillText(`${d.getMonth() + 1}/${d.getDate()}`, x, H - 8);
   }
 
-  // Line
-  ctx.strokeStyle = '#007AFF';
+  // Line segments colored by BMI zone
   ctx.lineWidth = 2;
   ctx.lineJoin = 'round';
-  ctx.beginPath();
-  log.forEach((e, i) => {
-    const x = toX(i), y = toY(e.kg);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-  });
-  ctx.stroke();
+  ctx.lineCap = 'round';
+  for (let i = 1; i < log.length; i++) {
+    const bmi = kgToBmi((log[i - 1].kg + log[i].kg) / 2);
+    ctx.strokeStyle = (bmi >= BMI_NORMAL_LO && bmi <= BMI_NORMAL_HI) ? '#4CAF50' :
+                      (bmi > BMI_OVERWEIGHT) ? '#F44336' : '#FF9800';
+    ctx.beginPath();
+    ctx.moveTo(toX(i - 1), toY(log[i - 1].kg));
+    ctx.lineTo(toX(i), toY(log[i].kg));
+    ctx.stroke();
+  }
 
-  // Area fill
-  ctx.globalAlpha = 0.1;
-  ctx.fillStyle = '#007AFF';
+  // Area fill under line with gradient
+  ctx.globalAlpha = 0.08;
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(log[0].kg));
+  for (let i = 1; i < log.length; i++) ctx.lineTo(toX(i), toY(log[i].kg));
   ctx.lineTo(toX(log.length - 1), pad.top + ch);
   ctx.lineTo(toX(0), pad.top + ch);
   ctx.closePath();
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  // Dots
+  // Dots colored by BMI
   log.forEach((e, i) => {
+    const bmi = kgToBmi(e.kg);
+    ctx.fillStyle = (bmi >= BMI_NORMAL_LO && bmi <= BMI_NORMAL_HI) ? '#4CAF50' :
+                    (bmi > BMI_OVERWEIGHT) ? '#F44336' : '#FF9800';
     ctx.beginPath();
-    ctx.arc(toX(i), toY(e.kg), 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#007AFF';
+    ctx.arc(toX(i), toY(e.kg), 3.5, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // BMI range label inside band
+  if (bandBot > bandTop + 16) {
+    ctx.fillStyle = 'rgba(76,175,80,0.5)';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText(`正常 ${kgNormalLo.toFixed(1)}–${kgNormalHi.toFixed(1)} kg`, pad.left + cw / 2, (bandTop + bandBot) / 2 + 3);
+  }
 }
 
 function _renderWeightHistory(log) {
@@ -739,8 +801,11 @@ function _renderWeightHistory(log) {
     const d = new Date(e.ts);
     const dateStr = `${d.getMonth() + 1}/${d.getDate()} ${d.toTimeString().slice(0, 5)}`;
     const idx = log.length - 1 - i;
+    const bmi = store.calcBMI(e.kg);
+    const bmiColor = (bmi >= 18.5 && bmi <= 24) ? '#4CAF50' : bmi > 28 ? '#F44336' : '#FF9800';
     html += `<div class="wh-item">
       <span class="wh-kg">${e.kg} kg</span>
+      <span class="wh-bmi" style="color:${bmiColor}">BMI ${bmi.toFixed(1)}</span>
       <span class="wh-time">${dateStr}</span>
       <button class="wh-del" data-idx="${idx}" title="删除">✕</button>
     </div>`;

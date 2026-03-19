@@ -368,6 +368,15 @@ export function calcBMI(kg) {
   return kg / (hm * hm);
 }
 
+export function bmiToKg(bmi) {
+  const hm = PROFILE.heightCm / 100;
+  return bmi * hm * hm;
+}
+
+export function getHeightCm() {
+  return PROFILE.heightCm;
+}
+
 export function getProfile() {
   return PROFILE;
 }
