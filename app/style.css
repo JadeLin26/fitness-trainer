@@ -141,6 +141,9 @@ body {
   overflow: hidden;
   transition: box-shadow 0.2s;
 }
+.ex-card.daily {
+  border-left: 3.5px solid var(--accent);
+}
 .ex-card:hover { box-shadow: var(--shadow-lg); }
 
 .ex-card-header {
