@@ -40,7 +40,7 @@ export const exercises = [
     hasScheduler: true,
     dailyTarget: 200,
     video: null,
-    images: [],
+    images: ['../images/wall_angel_demo.jpg'],
   },
   {
     id: 'shaker_iso',
@@ -79,8 +79,8 @@ export const exercises = [
     ttsMap: HYOID_MAP,
     hasSetAnnounce: false,
     hasBGM: false,
-    video: '../videos/shaker_dyn.mp4',
-    images: [],
+    video: null,
+    images: ['../images/shaker_dyn_demo.jpg'],
   },
   {
     id: 'subman_push',
