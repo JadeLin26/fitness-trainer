@@ -993,19 +993,21 @@ body {
 }
 .pcal-table td {
   text-align: center;
-  padding: 4px 0;
+  padding: 2px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 .pcal-day {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: 50%;
   font-size: 14px;
   font-weight: 500;
   transition: background 0.15s;
+  user-select: none;
 }
 .pcal-day.today {
   border: 2px solid var(--accent);
@@ -1038,10 +1040,19 @@ body {
 }
 .period-actions {
   padding: 0 20px 12px;
+}
+.period-sel-label {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.period-btn-row {
   display: flex;
   gap: 10px;
 }
-.period-actions button {
+.period-btn-row button {
   flex: 1;
   padding: 12px;
   border: none;
@@ -1050,17 +1061,21 @@ body {
   font-weight: 600;
   cursor: pointer;
 }
+.period-btn-row button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
 .btn-period-start {
   background: #E91E63;
   color: #fff;
 }
-.btn-period-start:active { opacity: 0.8; }
+.btn-period-start:active:not(:disabled) { opacity: 0.8; }
 .btn-period-end {
   background: var(--card);
   color: #E91E63;
   border: 1.5px solid #E91E63 !important;
 }
-.btn-period-end:active { opacity: 0.8; }
+.btn-period-end:active:not(:disabled) { opacity: 0.8; }
 .period-history {
   padding: 0 20px 40px;
 }

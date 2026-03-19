@@ -948,36 +948,34 @@ function _renderPeriodPage() {
   $('.period-info').innerHTML = legendHtml + infoHtml;
 
   // Selected date display
-  const selLabel = _selectedDate ? _selectedDate : '请在日历上选择日期';
+  const selLabel = _selectedDate || '请先选择日期';
+  const canStart = _selectedDate && !currentPeriod && !store.isPeriodDay(_selectedDate);
+  const canEnd = _selectedDate && currentPeriod && _selectedDate >= currentPeriod.startDate;
 
-  // Action buttons based on state
-  let actHtml = '';
-  if (currentPeriod) {
-    actHtml = `<button class="btn-period-end" data-start="${currentPeriod.startDate}">📅 ${selLabel}　经期结束</button>`;
-  } else {
-    actHtml = `<button class="btn-period-start">📅 ${selLabel}　记录经期开始</button>`;
-  }
+  let actHtml = `<div class="period-sel-label">已选：${selLabel}</div><div class="period-btn-row">`;
+  actHtml += `<button class="btn-period-start" ${canStart ? '' : 'disabled'}>记录经期开始</button>`;
+  actHtml += `<button class="btn-period-end" ${canEnd ? '' : 'disabled'} data-start="${currentPeriod?.startDate || ''}">标记经期结束</button>`;
+  actHtml += '</div>';
   $('.period-actions').innerHTML = actHtml;
 
   // Bind action buttons
-  $('.period-actions').querySelector('.btn-period-start')?.addEventListener('click', () => {
-    if (!_selectedDate) return;
-    if (store.isPeriodDay(_selectedDate)) return;
+  $('.period-actions').querySelector('.btn-period-start').addEventListener('click', () => {
+    if (!canStart) return;
     store.addPeriod(_selectedDate);
     _renderPeriodPage();
   });
-  $('.period-actions').querySelector('.btn-period-end')?.addEventListener('click', (e) => {
-    if (!_selectedDate) return;
-    const startDate = e.target.dataset.start;
-    if (_selectedDate < startDate) return;
-    store.endPeriodEarly(startDate, _selectedDate);
+  $('.period-actions').querySelector('.btn-period-end').addEventListener('click', (e) => {
+    if (!canEnd) return;
+    store.endPeriodEarly(currentPeriod.startDate, _selectedDate);
     _renderPeriodPage();
   });
 
-  // Calendar day click = select date only
-  $('.period-calendar').querySelectorAll('.pcal-day[data-date]').forEach(el => {
-    el.addEventListener('click', () => {
-      _selectedDate = el.dataset.date;
+  // Calendar day click = select date (bind on td so the whole cell is clickable)
+  $('.period-calendar').querySelectorAll('.pcal-table td').forEach(td => {
+    td.addEventListener('click', () => {
+      const span = td.querySelector('.pcal-day[data-date]');
+      if (!span) return;
+      _selectedDate = span.dataset.date;
       _renderPeriodPage();
     });
   });
