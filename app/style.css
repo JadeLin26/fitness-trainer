@@ -713,9 +713,10 @@ body {
 }
 .hm-cell {
   text-align: center;
-  padding: 2px 0;
+  padding: 2px 4px;
   cursor: pointer;
   position: relative;
+  vertical-align: middle;
 }
 .hm-cell.today { background: rgba(0, 122, 255, 0.06); }
 .hm-bar {
@@ -724,7 +725,7 @@ body {
   background: rgba(0,0,0,0.08);
   border-radius: 3px;
   overflow: hidden;
-  margin: 8px 0;
+  margin: 0;
 }
 .hm-bar-fill {
   height: 100%;
@@ -1005,7 +1006,7 @@ body {
   .hm-name { font-size: 11px; padding-right: 4px; }
   .heatmap-table th { font-size: 9px; padding: 2px 0; }
   .hm-date { font-size: 9px; }
-  .hm-bar { height: 5px; margin: 6px 0; }
+  .hm-bar { height: 5px; }
   .hm-full { min-height: 18px; font-size: 11px; }
 }
 
