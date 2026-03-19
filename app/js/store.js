@@ -339,17 +339,18 @@ export function getWeightLog() {
   return _loadWeights();
 }
 
-export function deleteWeight(idx) {
+export async function deleteWeight(idx) {
   const log = _loadWeights();
   if (idx < 0 || idx >= log.length) return;
   const removed = log.splice(idx, 1)[0];
   localStorage.setItem(WEIGHT_KEY, JSON.stringify(log));
-  if (removed?.ts) _deleteWeightFromCloud(removed.ts);
+  if (removed?.ts) await _deleteWeightFromCloud(removed.ts);
 }
 
 async function _deleteWeightFromCloud(ts) {
   try {
-    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=eq.${ts}`, {
+    const prefix = ts.slice(0, 19);
+    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=like.${encodeURIComponent(prefix + '*')}`, {
       method: 'DELETE',
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
@@ -414,10 +415,10 @@ export function endPeriodEarly(startDate, endDate) {
   }
 }
 
-export function deletePeriod(startDate) {
+export async function deletePeriod(startDate) {
   const log = _loadPeriods().filter(p => p.startDate !== startDate);
   _savePeriods(log);
-  _deletePeriodFromCloud(startDate);
+  await _deletePeriodFromCloud(startDate);
 }
 
 async function _deletePeriodFromCloud(startDate) {
@@ -514,54 +515,53 @@ export async function syncFromCloud() {
         }
       }
     }
-    // Sync weight log
+    // Sync weight log — cloud is source of truth
     const res3 = await fetch(`${SB_URL}/weight_log?order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res3.ok) {
       const cloudWeights = await res3.json();
-      if (cloudWeights?.length) {
-        const local = _loadWeights();
-        let merged = false;
-        for (const w of cloudWeights) {
-          const exists = local.some(l => l.ts && w.created_at && l.ts.slice(0, 16) === w.created_at.slice(0, 16));
-          if (!exists) {
-            local.push({ kg: Number(w.kg), ts: w.created_at });
-            merged = true;
-          }
-        }
-        if (merged) {
-          local.sort((a, b) => a.ts.localeCompare(b.ts));
-          localStorage.setItem(WEIGHT_KEY, JSON.stringify(local));
-        }
+      const local = _loadWeights();
+      const cloudSet = new Set((cloudWeights || []).map(w => w.created_at?.slice(0, 16)));
+      const localOnly = local.filter(l => l.ts && !cloudSet.has(l.ts.slice(0, 16)));
+      // Upload local-only records
+      for (const lo of localOnly) {
+        try {
+          await fetch(`${SB_URL}/weight_log`, {
+            method: 'POST', headers: SB_HEADERS,
+            body: JSON.stringify({ device_id: DEVICE_ID, kg: lo.kg, created_at: lo.ts }),
+          });
+        } catch {}
       }
+      // Rebuild local from cloud + local-only
+      const merged = (cloudWeights || []).map(w => ({ kg: Number(w.kg), ts: w.created_at }));
+      for (const lo of localOnly) merged.push(lo);
+      merged.sort((a, b) => a.ts.localeCompare(b.ts));
+      localStorage.setItem(WEIGHT_KEY, JSON.stringify(merged));
     }
-    // Sync period log
+    // Sync period log — cloud is source of truth
     const res4 = await fetch(`${SB_URL}/period_log?order=start_date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res4.ok) {
       const cloudPeriods = await res4.json();
-      if (cloudPeriods?.length) {
-        const local = _loadPeriods();
-        let merged = false;
-        for (const p of cloudPeriods) {
-          if (!local.some(l => l.startDate === p.start_date)) {
-            local.push({ startDate: p.start_date, endDate: p.end_date });
-            merged = true;
-          } else {
-            const existing = local.find(l => l.startDate === p.start_date);
-            if (existing && existing.endDate !== p.end_date) {
-              existing.endDate = p.end_date;
-              merged = true;
-            }
-          }
-        }
-        if (merged) {
-          local.sort((a, b) => a.startDate.localeCompare(b.startDate));
-          _savePeriods(local);
-        }
+      const local = _loadPeriods();
+      const cloudSet = new Set((cloudPeriods || []).map(p => p.start_date));
+      const localOnly = local.filter(l => !cloudSet.has(l.startDate));
+      // Upload local-only records
+      for (const lo of localOnly) {
+        try {
+          await fetch(`${SB_URL}/period_log`, {
+            method: 'POST', headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+            body: JSON.stringify({ device_id: DEVICE_ID, start_date: lo.startDate, end_date: lo.endDate }),
+          });
+        } catch {}
       }
+      // Rebuild local from cloud + local-only
+      const merged = (cloudPeriods || []).map(p => ({ startDate: p.start_date, endDate: p.end_date }));
+      for (const lo of localOnly) merged.push(lo);
+      merged.sort((a, b) => a.startDate.localeCompare(b.startDate));
+      _savePeriods(merged);
     }
   } catch (e) {
     console.warn('Cloud sync pull failed:', e);
