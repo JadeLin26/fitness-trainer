@@ -23,31 +23,48 @@ let _startSet = 1;
 export function getState() { return _state; }
 export function isRunning() { return _state !== 'idle' && _state !== 'done'; }
 
-function _estimateRemaining(ex, currentSet, currentRepInSet) {
+function _estimateRemaining(ex, info) {
   const d = ex.defaults;
   const sets = d.sets || 1;
   const rest = d.rest || 0;
+  const curSet = info.set || _startSet;
+  const phase = info.phase;
   let sec = 0;
+
+  if (phase === 'rest') {
+    sec += info.remaining || 0;
+    const setsAfter = sets - curSet;
+    if (ex.mode === 'counted_reps') {
+      sec += setsAfter * ((d.reps || 1) * (d.tempo || 2) + rest);
+    } else if (ex.mode === 'timed_hold') {
+      sec += setsAfter * ((d.holdSec || 1) + rest);
+    } else if (ex.mode === 'timed_reps') {
+      const repTime = (d.holdSec || 5) + (d.restRep || 0);
+      sec += setsAfter * ((d.repsPerSet || 1) * repTime + rest);
+    }
+    return Math.max(0, Math.round(sec));
+  }
+
   if (ex.mode === 'counted_reps') {
     const reps = d.reps || 1;
     const tempo = d.tempo || 2;
-    const repsLeft = reps - (currentRepInSet || 0);
+    const repsLeft = reps - (info.rep || 0);
     sec += repsLeft * tempo;
-    const setsAfter = sets - currentSet;
+    const setsAfter = sets - curSet;
     sec += setsAfter * (reps * tempo + rest);
   } else if (ex.mode === 'timed_hold') {
-    const holdSec = d.holdSec || 1;
-    sec += holdSec;
-    const setsAfter = sets - currentSet;
-    sec += setsAfter * (holdSec + rest);
+    sec += info.remaining || 0;
+    const setsAfter = sets - curSet;
+    sec += setsAfter * ((d.holdSec || 1) + rest);
   } else if (ex.mode === 'timed_reps') {
     const repsPerSet = d.repsPerSet || 1;
     const holdSec = d.holdSec || 5;
     const restRep = d.restRep || 0;
     const repTime = holdSec + restRep;
-    const repsLeft = repsPerSet - (currentRepInSet || 0);
+    sec += info.remaining || 0;
+    const repsLeft = repsPerSet - (info.rep || 0);
     sec += repsLeft * repTime;
-    const setsAfter = sets - currentSet;
+    const setsAfter = sets - curSet;
     sec += setsAfter * (repsPerSet * repTime + rest);
   }
   return Math.max(0, Math.round(sec));
@@ -68,7 +85,7 @@ function _emit(info) {
     overallDone = _priorReps + (_partialResult || 0);
   }
   const overallProgress = overallTotal > 0 ? Math.min(overallDone / overallTotal, 1) : 0;
-  const remainSec = _estimateRemaining(ex, info.set || _startSet, info.rep || 0);
+  const remainSec = _estimateRemaining(ex, info);
   if (_onUpdate) _onUpdate({
     state: _state, exercise: ex?.id,
     overallProgress, overallDone, overallTotal,

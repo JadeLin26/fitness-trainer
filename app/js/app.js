@@ -532,9 +532,14 @@ function _updateTrainingUI(info, ex) {
   else if (info.phase === 'hold') {
     numEl.textContent = info.remaining;
     const sideTag = ex.alternating && info.set ? (info.set % 2 === 1 ? ' · 左腿' : ' · 右腿') : '';
-    labelEl.textContent = info.totalSets > 1
-      ? `第${info.set}组${sideTag} 第${info.rep}次`
-      : `第${info.rep || 1}次`;
+    let holdLabel = '';
+    if (info.totalSets > 1) {
+      holdLabel = `第${info.set}组${sideTag}`;
+      if (info.rep != null) holdLabel += ` 第${info.rep}次`;
+    } else {
+      holdLabel = info.rep != null ? `第${info.rep}次` : '保持中';
+    }
+    labelEl.textContent = holdLabel;
     const pct = info.remaining / info.total;
     fg.style.strokeDasharray = `${circ}`;
     fg.style.strokeDashoffset = `${circ * (1 - pct)}`;
