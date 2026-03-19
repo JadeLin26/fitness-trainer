@@ -731,11 +731,20 @@ function _renderStats() {
     categories[ex.category].push(ex);
   }
 
-  // Heatmap header
-  let heatHtml = '<table class="heatmap-table"><thead><tr><th class="hm-name-th"></th>';
+  // Heatmap header with fixed-width columns; today gets slightly wider
+  const todayIdx = weekDays.indexOf(store.trainingDay());
+  const dayColPct = 10;
+  const todayColPct = 14;
+  const nameColPct = 100 - (6 * dayColPct + todayColPct);
+  let heatHtml = '<table class="heatmap-table"><colgroup>';
+  heatHtml += `<col style="width:${nameColPct}%">`;
+  for (let i = 0; i < 7; i++) {
+    heatHtml += `<col style="width:${i === todayIdx ? todayColPct : dayColPct}%">`;
+  }
+  heatHtml += '</colgroup><thead><tr><th class="hm-name-th"></th>';
   for (let i = 0; i < 7; i++) {
     const dateStr = weekDays[i].slice(8);
-    const isToday = weekDays[i] === store.trainingDay();
+    const isToday = i === todayIdx;
     heatHtml += `<th class="${isToday ? 'today' : ''}">${dayNames[i]}<br><span class="hm-date">${dateStr}</span></th>`;
   }
   heatHtml += '</tr></thead><tbody>';

@@ -609,6 +609,7 @@ body {
 .heatmap-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 @media (min-width: 600px) {
   .heatmap-table { width: 80%; margin: 0 auto; }
@@ -641,8 +642,9 @@ body {
 }
 .hm-name-th,
 .hm-name {
-  width: 1%;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .hm-name {
   font-size: 12px;
