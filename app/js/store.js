@@ -438,13 +438,13 @@ export function addPeriod(startDate) {
   _syncPeriodToCloud(startDate, endDate);
 }
 
-export function endPeriodEarly(startDate, endDate) {
+export async function endPeriodEarly(startDate, endDate) {
   const log = _loadPeriods();
   const rec = log.find(p => p.startDate === startDate);
   if (rec) {
     rec.endDate = endDate;
     _savePeriods(log);
-    _syncPeriodToCloud(startDate, endDate);
+    await _updatePeriodEndInCloud(startDate, endDate);
   }
 }
 
@@ -495,6 +495,18 @@ async function _syncPeriodToCloud(startDate, endDate) {
     });
   } catch (e) {
     console.warn('Period cloud sync failed:', e);
+  }
+}
+
+async function _updatePeriodEndInCloud(startDate, endDate) {
+  try {
+    await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&start_date=eq.${startDate}`, {
+      method: 'PATCH',
+      headers: SB_HEADERS,
+      body: JSON.stringify({ end_date: endDate }),
+    });
+  } catch (e) {
+    console.warn('Period cloud update failed:', e);
   }
 }
 
@@ -563,8 +575,11 @@ export async function syncFromCloud() {
     });
     if (res4.ok) {
       const cloudPeriods = await res4.json();
-      const rebuilt = (cloudPeriods || []).map(p => ({ startDate: p.start_date, endDate: p.end_date }));
-      _savePeriods(rebuilt);
+      const deduped = new Map();
+      for (const p of (cloudPeriods || [])) {
+        deduped.set(p.start_date, { startDate: p.start_date, endDate: p.end_date });
+      }
+      _savePeriods([...deduped.values()]);
     }
   } catch (e) {
     console.warn('Cloud sync pull failed:', e);
