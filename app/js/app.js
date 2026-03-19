@@ -440,6 +440,18 @@ function _startTraining(ex) {
   $('.training-title').textContent = ex.name;
   $('.training-subtitle').textContent = ex.tips || ex.subtitle;
 
+  let refHtml = '';
+  if (ex.images?.length) {
+    refHtml += ex.images.map(src => `<img class="training-ref-img" src="${src}" alt="${ex.name}">`).join('');
+  }
+  if (ex.video) {
+    refHtml += `<video class="training-ref-vid" src="${ex.video}" muted playsinline loop autoplay></video>`;
+  }
+  if (ex.details) {
+    refHtml += `<div class="training-ref-details">${ex.details.replace(/\n/g, '<br>')}</div>`;
+  }
+  $('.training-tips').innerHTML = refHtml;
+
   const btnPause = $('.btn-pause');
   const btnStop = $('.btn-stop');
   const btnResume = $('.btn-resume');
@@ -536,6 +548,7 @@ function _updateTrainingUI(info, ex) {
 function _closeOverlay() {
   $('.training-overlay').classList.remove('active');
   $('.ring-number').style.color = '';
+  $('.training-tips').innerHTML = '';
   engine.reset();
   renderList();
 }
