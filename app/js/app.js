@@ -1080,6 +1080,8 @@ function _renderPeriodPage() {
 
 // --- Steps panel ---
 let _stepsDate = null;
+let _stepsStatsPeriod = 'week';
+let _stepsStatsOffset = 0;
 
 function _openSteps() {
   _stepsDate = store.trainingDay();
@@ -1137,44 +1139,244 @@ function _renderStepsPage() {
     summaryEl.innerHTML = `<div style="color:var(--text2)">${date === today ? '今天还没有记录步数' : `${date} 暂无步数记录`}</div>`;
   }
 
-  _renderStepsHistory();
+  _renderStepsStats();
 }
 
-function _renderStepsHistory() {
-  const container = $('.steps-history');
-  const log = store.getStepsLog();
-  if (log.length === 0) { container.innerHTML = ''; return; }
+function _getStepsPeriodDays() {
+  if (_stepsStatsPeriod === 'week') return _getWeekDays(_stepsStatsOffset);
+  const now = new Date();
+  const m = now.getMonth() + _stepsStatsOffset;
+  const first = new Date(now.getFullYear(), m, 1);
+  const last = new Date(now.getFullYear(), m + 1, 0);
+  const days = [];
+  for (let d = 1; d <= last.getDate(); d++) days.push(_localDateStr(new Date(now.getFullYear(), m, d)));
+  return days;
+}
 
-  const recent = [...log].reverse().slice(0, 30);
-  let html = '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">历史记录</div>';
+function _getStepsPeriodLabel() {
+  if (_stepsStatsPeriod === 'week') return _getWeekLabel(_stepsStatsOffset);
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + _stepsStatsOffset, 1);
+  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+}
 
-  for (const e of recent) {
-    const wd = ['日', '一', '二', '三', '四', '五', '六'][new Date(e.date + 'T12:00:00').getDay()];
-    const cal = Math.round(_calcStepsCaloriesRaw(e.steps));
-    html += `<div class="sh-item ${e.date === _stepsDate ? 'selected' : ''}" data-date="${e.date}">
-      <span class="sh-date">${e.date.slice(5)} 周${wd}</span>
-      <span class="sh-steps">${e.steps.toLocaleString()} 步</span>
-      <span class="sh-cal">${cal} kcal</span>
-      <button class="sh-del" data-date="${e.date}" title="删除">✕</button>
+function _renderStepsStats() {
+  const days = _getStepsPeriodDays();
+  const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+  const today = store.trainingDay();
+
+  $$('.steps-period-btn').forEach(b => b.classList.toggle('active', b.dataset.period === _stepsStatsPeriod));
+  $('.steps-stats-label').textContent = _getStepsPeriodLabel();
+
+  let totalSteps = 0, maxSteps = 0, daysWithData = 0;
+  const dayData = [];
+  for (const day of days) {
+    const steps = store.getStepsForDay(day);
+    totalSteps += steps;
+    if (steps > maxSteps) maxSteps = steps;
+    if (steps > 0) daysWithData++;
+    dayData.push({ day, steps });
+  }
+  const avgSteps = daysWithData > 0 ? Math.round(totalSteps / daysWithData) : 0;
+  const totalCal = Math.round(dayData.reduce((t, d) => t + _calcStepsCaloriesRaw(d.steps), 0));
+  const totalKm = (totalSteps * 0.7 / 1000).toFixed(1);
+
+  $('.steps-stats-cards').innerHTML = `
+    <div class="steps-stat-card"><div class="steps-stat-value">${totalSteps.toLocaleString()}</div><div class="steps-stat-label">总步数</div></div>
+    <div class="steps-stat-card"><div class="steps-stat-value" style="color:#E65100">${totalCal}</div><div class="steps-stat-label">消耗 kcal</div></div>
+    <div class="steps-stat-card"><div class="steps-stat-value">${avgSteps.toLocaleString()}</div><div class="steps-stat-label">日均步数</div></div>
+    <div class="steps-stat-card"><div class="steps-stat-value">${totalKm}</div><div class="steps-stat-label">总距离 km</div></div>`;
+
+  _renderStepsLineChart(dayData);
+  _renderStepsBarChart(dayData, maxSteps);
+
+  const dailyEl = $('.steps-stats-daily');
+  let html = '';
+  for (const d of [...dayData].reverse()) {
+    if (d.day > today) continue;
+    const wd = dayNames[new Date(d.day + 'T12:00:00').getDay()];
+    const cal = Math.round(_calcStepsCaloriesRaw(d.steps));
+    const pct = maxSteps > 0 ? Math.round(d.steps / maxSteps * 100) : 0;
+    const barColor = d.steps >= 8000 ? '#4CAF50' : d.steps >= 3000 ? '#FF9800' : d.steps > 0 ? '#EF9A9A' : 'transparent';
+    html += `<div class="ssd-item ${d.day === _stepsDate ? 'selected' : ''}" data-date="${d.day}">
+      <span class="ssd-day">${d.day.slice(5)} ${wd}</span>
+      <span class="ssd-bar-wrap"><span class="ssd-bar" style="width:${pct}%;background:${barColor}"></span></span>
+      <span class="ssd-steps">${d.steps > 0 ? d.steps.toLocaleString() : '-'}</span>
+      <span class="ssd-cal">${cal > 0 ? cal + ' kcal' : ''}</span>
     </div>`;
   }
-  container.innerHTML = html;
-
-  container.querySelectorAll('.sh-item').forEach(item => {
-    item.addEventListener('click', (ev) => {
-      if (ev.target.classList.contains('sh-del')) return;
+  dailyEl.innerHTML = html;
+  dailyEl.querySelectorAll('.ssd-item').forEach(item => {
+    item.addEventListener('click', () => {
       _stepsDate = item.dataset.date;
       _renderStepsPage();
+      $('.steps-panel').scrollTop = 0;
     });
   });
-  container.querySelectorAll('.sh-del').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      store.deleteSteps(btn.dataset.date);
-      _renderStepsPage();
-      _updateProgressSummary();
-    });
+}
+
+function _renderStepsLineChart(dayData) {
+  const canvas = $('.steps-line-chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const pts = dayData.filter(d => d.steps > 0);
+  if (pts.length < 2) {
+    ctx.fillStyle = '#999';
+    ctx.font = '13px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('需要 2 天以上数据显示曲线', W / 2, H / 2);
+    return;
+  }
+
+  const pad = { top: 20, right: 12, bottom: 28, left: 40 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+
+  const vals = pts.map(d => d.steps);
+  let minV = Math.min(...vals);
+  let maxV = Math.max(...vals);
+  if (maxV - minV < 100) { minV -= 100; maxV += 100; }
+  const range = maxV - minV || 1;
+
+  const toX = i => pad.left + (i / (pts.length - 1)) * cw;
+  const toY = v => pad.top + (1 - (v - minV) / range) * ch;
+
+  // Grid lines + Y axis labels
+  ctx.strokeStyle = '#eee';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (i / 4) * ch;
+    const val = maxV - (i / 4) * range;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#999';
+    ctx.font = '10px system-ui';
+    ctx.textAlign = 'right';
+    const label = val >= 1000 ? `${(val / 1000).toFixed(1)}k` : Math.round(val);
+    ctx.fillText(label, pad.left - 4, y + 3);
+  }
+
+  // Average line
+  const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const avgY = toY(avg);
+  ctx.strokeStyle = 'rgba(0,122,255,0.25)';
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(pad.left, avgY); ctx.lineTo(W - pad.right, avgY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(0,122,255,0.45)';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'left';
+  ctx.fillText(`均 ${Math.round(avg).toLocaleString()}`, pad.left + 4, avgY - 4);
+
+  // Area fill
+  ctx.globalAlpha = 0.1;
+  ctx.fillStyle = '#4CAF50';
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(pts[0].steps));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(toX(i), toY(pts[i].steps));
+  ctx.lineTo(toX(pts.length - 1), pad.top + ch);
+  ctx.lineTo(toX(0), pad.top + ch);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Line
+  ctx.strokeStyle = '#4CAF50';
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(pts[0].steps));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(toX(i), toY(pts[i].steps));
+  ctx.stroke();
+
+  // Dots
+  pts.forEach((d, i) => {
+    const color = d.steps >= 8000 ? '#4CAF50' : d.steps >= 3000 ? '#FF9800' : '#EF9A9A';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(toX(i), toY(d.steps), 3.5, 0, Math.PI * 2);
+    ctx.fill();
   });
+
+  // Date labels
+  ctx.fillStyle = '#999';
+  ctx.font = '10px system-ui';
+  ctx.textAlign = 'center';
+  const step = Math.max(1, Math.floor(pts.length / 6));
+  for (let i = 0; i < pts.length; i += step) {
+    ctx.fillText(pts[i].day.slice(5), toX(i), H - 8);
+  }
+  if (pts.length > 1) {
+    ctx.fillText(pts[pts.length - 1].day.slice(5), toX(pts.length - 1), H - 8);
+  }
+}
+
+function _renderStepsBarChart(dayData, maxSteps) {
+  const canvas = $('.steps-bar-chart');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  ctx.clearRect(0, 0, W, H);
+  if (!dayData.length || maxSteps === 0) return;
+
+  const pad = { top: 22, right: 8, bottom: 24, left: 8 };
+  const cw = W - pad.left - pad.right;
+  const ch = H - pad.top - pad.bottom;
+  const n = dayData.length;
+  const barGap = Math.max(1, Math.min(4, cw / n * 0.15));
+  const barW = (cw - barGap * (n - 1)) / n;
+  const yMax = Math.ceil(maxSteps / 1000) * 1000 || 1000;
+  const today = store.trainingDay();
+
+  for (let i = 0; i < n; i++) {
+    const d = dayData[i];
+    const x = pad.left + i * (barW + barGap);
+    const h = d.steps > 0 ? Math.max(2, ch * d.steps / yMax) : 0;
+    const y = pad.top + ch - h;
+    const color = d.steps >= 8000 ? '#4CAF50' : d.steps >= 3000 ? '#FF9800' : d.steps > 0 ? '#EF9A9A' : 'transparent';
+
+    if (d.day === today) {
+      ctx.fillStyle = 'rgba(0,122,255,0.06)';
+      ctx.fillRect(x - 1, pad.top, barW + 2, ch);
+    }
+    if (h > 0) {
+      ctx.fillStyle = color;
+      const r = Math.min(3, barW / 2);
+      ctx.beginPath();
+      ctx.moveTo(x, y + h); ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.lineTo(x + barW - r, y);
+      ctx.quadraticCurveTo(x + barW, y, x + barW, y + r);
+      ctx.lineTo(x + barW, y + h);
+      ctx.closePath(); ctx.fill();
+    }
+    if (d.steps > 0 && (n <= 7 || d.steps >= yMax * 0.3)) {
+      ctx.fillStyle = '#666';
+      ctx.font = `${n <= 7 ? 10 : 8}px system-ui`;
+      ctx.textAlign = 'center';
+      const label = d.steps >= 10000 ? `${(d.steps / 1000).toFixed(0)}k` : d.steps >= 1000 ? `${(d.steps / 1000).toFixed(1)}k` : `${d.steps}`;
+      ctx.fillText(label, x + barW / 2, y - 4);
+    }
+    const dayNum = parseInt(d.day.slice(8));
+    const showLabel = n <= 7 || dayNum === 1 || dayNum % 5 === 0 || i === n - 1;
+    if (showLabel) {
+      ctx.fillStyle = d.day === today ? '#007AFF' : '#999';
+      ctx.font = `${n <= 7 ? 10 : 8}px system-ui`;
+      ctx.textAlign = 'center';
+      ctx.fillText(d.day.slice(8), x + barW / 2, H - 6);
+    }
+  }
 }
 
 function _renderStats() {
@@ -1461,6 +1663,19 @@ export function init() {
       _stepsDate = _localDateStr(d);
       _renderStepsPage();
     }
+  });
+
+  // Steps stats period toggle & nav
+  $$('.steps-period-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      _stepsStatsPeriod = btn.dataset.period;
+      _stepsStatsOffset = 0;
+      _renderStepsStats();
+    });
+  });
+  $('.steps-stats-prev')?.addEventListener('click', () => { _stepsStatsOffset--; _renderStepsStats(); });
+  $('.steps-stats-next')?.addEventListener('click', () => {
+    if (_stepsStatsOffset < 0) { _stepsStatsOffset++; _renderStepsStats(); }
   });
 
   // Stats button
