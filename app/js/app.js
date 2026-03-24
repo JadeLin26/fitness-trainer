@@ -1235,7 +1235,7 @@ function _renderStepsLineChart(dayData) {
     return;
   }
 
-  const pad = { top: 20, right: 12, bottom: 28, left: 40 };
+  const pad = { top: 20, right: 12, bottom: 38, left: 40 };
   const cw = W - pad.left - pad.right;
   const ch = H - pad.top - pad.bottom;
 
@@ -1312,18 +1312,19 @@ function _renderStepsLineChart(dayData) {
   const wdArr = ['日', '一', '二', '三', '四', '五', '六'];
   const isWeekView = pts.length <= 7;
   const step = Math.max(1, Math.floor(pts.length / 6));
+  const _drawDateLabel = (pt, xPos) => {
+    if (isWeekView) {
+      ctx.fillText(wdArr[new Date(pt.day + 'T12:00:00').getDay()], xPos, H - 18);
+      ctx.fillText(pt.day.slice(8), xPos, H - 6);
+    } else {
+      ctx.fillText(pt.day.slice(5), xPos, H - 8);
+    }
+  };
   for (let i = 0; i < pts.length; i += step) {
-    const lbl = isWeekView
-      ? `${wdArr[new Date(pts[i].day + 'T12:00:00').getDay()]} ${pts[i].day.slice(8)}`
-      : pts[i].day.slice(5);
-    ctx.fillText(lbl, toX(i), H - 8);
+    _drawDateLabel(pts[i], toX(i));
   }
   if (pts.length > 1) {
-    const last = pts[pts.length - 1];
-    const lastLbl = isWeekView
-      ? `${wdArr[new Date(last.day + 'T12:00:00').getDay()]} ${last.day.slice(8)}`
-      : last.day.slice(5);
-    ctx.fillText(lastLbl, toX(pts.length - 1), H - 8);
+    _drawDateLabel(pts[pts.length - 1], toX(pts.length - 1));
   }
 }
 
@@ -1339,7 +1340,7 @@ function _renderStepsBarChart(dayData, maxSteps) {
   ctx.clearRect(0, 0, W, H);
   if (!dayData.length || maxSteps === 0) return;
 
-  const pad = { top: 22, right: 8, bottom: 24, left: 8 };
+  const pad = { top: 22, right: 8, bottom: 34, left: 8 };
   const cw = W - pad.left - pad.right;
   const ch = H - pad.top - pad.bottom;
   const n = dayData.length;
@@ -1384,10 +1385,12 @@ function _renderStepsBarChart(dayData, maxSteps) {
       ctx.fillStyle = d.day === today ? '#007AFF' : '#999';
       ctx.font = `${n <= 7 ? 10 : 8}px system-ui`;
       ctx.textAlign = 'center';
-      const dateLabel = n <= 7
-        ? `${wdNames[new Date(d.day + 'T12:00:00').getDay()]} ${dayNum}`
-        : String(dayNum);
-      ctx.fillText(dateLabel, x + barW / 2, H - 6);
+      if (n <= 7) {
+        ctx.fillText(wdNames[new Date(d.day + 'T12:00:00').getDay()], x + barW / 2, H - 18);
+        ctx.fillText(String(dayNum), x + barW / 2, H - 6);
+      } else {
+        ctx.fillText(String(dayNum), x + barW / 2, H - 6);
+      }
     }
   }
 }

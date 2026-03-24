@@ -1363,7 +1363,7 @@ body {
 }
 .steps-line-chart {
   width: 100%;
-  height: 180px;
+  height: 195px;
   background: var(--card);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
@@ -1371,7 +1371,7 @@ body {
 }
 .steps-bar-chart {
   width: 100%;
-  height: 120px;
+  height: 135px;
   background: var(--card);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
