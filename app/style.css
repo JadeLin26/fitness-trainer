@@ -1263,28 +1263,125 @@ body {
   font-size: 14px;
   line-height: 1.6;
 }
-.steps-history {
+/* Steps stats section */
+.steps-stats-section {
   padding: 0 20px 40px;
 }
-.sh-item {
+.steps-period-toggle {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  background: #f0f0f5;
+  border-radius: 10px;
+  padding: 3px;
+}
+.steps-period-btn {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.steps-period-btn.active {
+  background: #fff;
+  color: #4CAF50;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.steps-stats-nav {
   display: flex;
   align-items: center;
-  padding: 10px 0;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.steps-stats-nav button {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 4px 10px;
+}
+.steps-stats-label {
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 120px;
+  text-align: center;
+}
+.steps-chart-container {
+  margin-bottom: 16px;
+}
+.steps-chart {
+  width: 100%;
+  height: 180px;
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+}
+.steps-stats-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.steps-stat-card {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.steps-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+.steps-stat-label {
+  font-size: 12px;
+  color: var(--text2);
+  margin-top: 4px;
+}
+.ssd-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   gap: 8px;
 }
-.sh-item:active { background: var(--card-hover); }
-.sh-item.selected { background: rgba(0, 122, 255, 0.06); border-radius: 8px; }
-.sh-date { color: var(--text2); font-size: 13px; min-width: 90px; }
-.sh-steps { font-weight: 700; font-size: 15px; flex: 1; }
-.sh-cal { font-size: 12px; color: #E65100; min-width: 60px; text-align: right; }
-.sh-del {
-  background: none;
-  border: none;
-  color: #E53935;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 8px;
+.ssd-item:active { background: var(--card-hover); }
+.ssd-item.selected { background: rgba(0, 122, 255, 0.06); border-radius: 8px; }
+.ssd-day { color: var(--text2); min-width: 72px; font-size: 12px; }
+.ssd-bar-wrap {
+  flex: 1;
+  height: 16px;
+  background: #f0f0f5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.ssd-bar {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.3s;
+}
+.ssd-steps { min-width: 65px; text-align: right; font-weight: 600; font-size: 13px; }
+.ssd-cal { min-width: 50px; text-align: right; font-size: 11px; color: #E65100; }
+
+/* Training stats: steps banner */
+.stats-steps-banner {
+  margin: 0 auto 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
 }
