@@ -1199,7 +1199,7 @@ function _renderStepsStats() {
     const pct = maxSteps > 0 ? Math.round(d.steps / maxSteps * 100) : 0;
     const barColor = d.steps >= 8000 ? '#4CAF50' : d.steps >= 3000 ? '#FF9800' : d.steps > 0 ? '#EF9A9A' : 'transparent';
     html += `<div class="ssd-item ${d.day === _stepsDate ? 'selected' : ''}" data-date="${d.day}">
-      <span class="ssd-day">${d.day.slice(5)} ${wd}</span>
+      <span class="ssd-day">${d.day.slice(5)} 周${wd}</span>
       <span class="ssd-bar-wrap"><span class="ssd-bar" style="width:${pct}%;background:${barColor}"></span></span>
       <span class="ssd-steps">${d.steps > 0 ? d.steps.toLocaleString() : '-'}</span>
       <span class="ssd-cal">${cal > 0 ? cal + ' kcal' : ''}</span>
@@ -1309,12 +1309,21 @@ function _renderStepsLineChart(dayData) {
   ctx.fillStyle = '#999';
   ctx.font = '10px system-ui';
   ctx.textAlign = 'center';
+  const wdArr = ['日', '一', '二', '三', '四', '五', '六'];
+  const isWeekView = pts.length <= 7;
   const step = Math.max(1, Math.floor(pts.length / 6));
   for (let i = 0; i < pts.length; i += step) {
-    ctx.fillText(pts[i].day.slice(5), toX(i), H - 8);
+    const lbl = isWeekView
+      ? `${wdArr[new Date(pts[i].day + 'T12:00:00').getDay()]} ${pts[i].day.slice(8)}`
+      : pts[i].day.slice(5);
+    ctx.fillText(lbl, toX(i), H - 8);
   }
   if (pts.length > 1) {
-    ctx.fillText(pts[pts.length - 1].day.slice(5), toX(pts.length - 1), H - 8);
+    const last = pts[pts.length - 1];
+    const lastLbl = isWeekView
+      ? `${wdArr[new Date(last.day + 'T12:00:00').getDay()]} ${last.day.slice(8)}`
+      : last.day.slice(5);
+    ctx.fillText(lastLbl, toX(pts.length - 1), H - 8);
   }
 }
 
@@ -1369,12 +1378,16 @@ function _renderStepsBarChart(dayData, maxSteps) {
       ctx.fillText(label, x + barW / 2, y - 4);
     }
     const dayNum = parseInt(d.day.slice(8));
+    const wdNames = ['日', '一', '二', '三', '四', '五', '六'];
     const showLabel = n <= 7 || dayNum === 1 || dayNum % 5 === 0 || i === n - 1;
     if (showLabel) {
       ctx.fillStyle = d.day === today ? '#007AFF' : '#999';
       ctx.font = `${n <= 7 ? 10 : 8}px system-ui`;
       ctx.textAlign = 'center';
-      ctx.fillText(d.day.slice(8), x + barW / 2, H - 6);
+      const dateLabel = n <= 7
+        ? `${wdNames[new Date(d.day + 'T12:00:00').getDay()]} ${dayNum}`
+        : String(dayNum);
+      ctx.fillText(dateLabel, x + barW / 2, H - 6);
     }
   }
 }
