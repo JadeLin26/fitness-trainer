@@ -172,6 +172,7 @@ async function _runCountedReps(ex, startSet = 1) {
 
     // Count reps
     const halfRep = Math.floor(reps / 2);
+    const useCues = reps >= 15;
     for (let r = 1; r <= reps; r++) {
       await _checkCancel();
       totalDone++;
@@ -184,19 +185,21 @@ async function _runCountedReps(ex, startSet = 1) {
       if (r <= 30) {
         await voice.playNum(ex.ttsDir, r, tempo * 1000 * 0.5);
       }
-
-      if (r === halfRep && reps >= 10) {
-        voice.sayAsync(ex.ttsDir, ex.ttsMap,
-          ex.ttsMap?.['过半了'] ? '过半了' : '过半了');
-      } else if (r === reps - 3 && reps >= 10 && ex.ttsMap?.['快完了']) {
-        voice.sayAsync(ex.ttsDir, ex.ttsMap, '快完了');
-      } else if (r === halfRep + 2 && reps >= 12 && ex.ttsMap?.['坚持']) {
-        voice.sayAsync(ex.ttsDir, ex.ttsMap, '坚持');
-      }
-
       const elapsedMs = performance.now() - tickStart;
       const waitMs = Math.max(0, tempo * 1000 - elapsedMs);
       if (waitMs > 50) await _sleep(waitMs);
+
+      if (!useCues) continue;
+      if (r === halfRep) {
+        await voice.say(ex.ttsDir, ex.ttsMap, ex.ttsMap?.['过半了'] ? '过半了' : '过半了');
+        await _sleep(200);
+      } else if (r === reps - 3 && reps >= 20 && ex.ttsMap?.['快完了']) {
+        await voice.say(ex.ttsDir, ex.ttsMap, '快完了');
+        await _sleep(200);
+      } else if (r === halfRep + 2 && reps >= 20 && ex.ttsMap?.['坚持']) {
+        await voice.say(ex.ttsDir, ex.ttsMap, '坚持');
+        await _sleep(200);
+      }
     }
 
     // Rest between sets
