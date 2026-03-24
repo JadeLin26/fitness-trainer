@@ -18,15 +18,11 @@ const CAT_ICON_FILES = {
 };
 
 const EX_ICON_FILES = {
-  'shaker_iso': 'icons/icon_suprahyoid.png',
-  'shaker_dyn': 'icons/icon_suprahyoid.png',
   'subman_push': 'icons/icon_submental.png',
   'fesm': 'icons/icon_geniohyoid.png',
   'chin_tuck': 'icons/icon_deep_neck.png',
   'mewing': 'icons/icon_tongue.png',
-  'pelvic_breath': 'icons/icon_pelvic_breath.png',
   'pelvic_tilt': 'icons/icon_pelvic_tilt.png',
-  'hip_flexor_stretch': 'icons/icon_hip_flexor.png',
   'single_leg_lower': 'icons/icon_core.png',
   'single_glute_bridge': 'icons/icon_glute.png',
   'single_leg_deadlift': 'icons/icon_hamstring.png',
@@ -107,6 +103,7 @@ function renderList() {
             </div>
           </div>
           ${ex.dailyCheckTarget ? `<div class="check-bar">
+            ${store.getCheckCount(ex.id, day) > 0 ? `<button class="btn-check-dec" data-id="${ex.id}">-1</button>` : ''}
             <span class="check-count">${store.getCheckCount(ex.id, day)} / ${ex.dailyCheckTarget}</span>
             <button class="btn-check-inc" data-id="${ex.id}">+1 打卡</button>
           </div>` : ''}
@@ -161,6 +158,13 @@ function renderList() {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       store.incrementCheck(btn.dataset.id, store.trainingDay());
+      renderList();
+    });
+  });
+  list.querySelectorAll('.btn-check-dec[data-id]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      store.decrementCheck(btn.dataset.id, store.trainingDay());
       renderList();
     });
   });
@@ -356,11 +360,9 @@ function _renderCheckRing(pct) {
 
 const EX_MET = {
   'wall_angel': 3.0,
-  'shaker_iso': 2.5, 'shaker_dyn': 3.0,
   'subman_push': 2.0, 'fesm': 2.0,
   'chin_tuck': 2.0, 'mewing': 1.0,
-  'pelvic_breath': 1.5, 'pelvic_tilt': 3.0,
-  'hip_flexor_stretch': 2.5,
+  'pelvic_tilt': 3.0,
   'single_leg_lower': 3.5, 'single_glute_bridge': 4.0,
   'single_leg_deadlift': 4.0,
   'band_back': 3.5,
@@ -584,7 +586,7 @@ function _updateTrainingUI(info, ex) {
     if (fill) fill.style.width = '100%';
     if (pLabel) pLabel.textContent = '全部完成！';
     if (remEl) remEl.textContent = '';
-    setTimeout(() => _closeOverlay(), 2500);
+    setTimeout(() => _closeOverlay(), 5000);
   }
   else if (info.phase === 'cancelled') {
     _closeOverlay();
@@ -1395,6 +1397,21 @@ function _formatDate() {
 export function init() {
   $('.date-display').textContent = _formatDate();
 
+  // Auto-refresh date & list when day changes or page regains focus
+  let _lastDay = new Date().getDate();
+  const _checkDayChange = () => {
+    const now = new Date();
+    if (now.getDate() !== _lastDay) {
+      _lastDay = now.getDate();
+      $('.date-display').textContent = _formatDate();
+      renderList();
+    }
+  };
+  setInterval(_checkDayChange, 30000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) _checkDayChange();
+  });
+
   // Mute toggle
   $('.btn-mute').addEventListener('click', () => {
     const muted = !voice.isMuted();
@@ -1461,6 +1478,7 @@ export function init() {
   $('.btn-pause').addEventListener('click', () => engine.pause());
   $('.btn-resume').addEventListener('click', () => engine.resume());
   $('.btn-stop').addEventListener('click', () => {
+    if (!confirm('确定要结束训练吗？已完成的进度会保存。')) return;
     engine.cancel();
     _closeOverlay();
   });
@@ -1471,9 +1489,21 @@ export function init() {
 
   // Preload common voice clips
   const commonUrls = [];
-  for (let i = 1; i <= 20; i++) {
-    commonUrls.push(`../trainer_tts/num_${String(i).padStart(2, '0')}.wav`);
+  for (const dir of ['../trainer_tts', '../hyoid_tts']) {
+    for (let i = 1; i <= 20; i++) {
+      commonUrls.push(`${dir}/num_${String(i).padStart(2, '0')}.wav`);
+    }
   }
   commonUrls.push('../trainer_tts/start.wav', '../trainer_tts/ready.wav', '../trainer_tts/done_good.wav');
+  commonUrls.push('../hyoid_tts/start.wav', '../hyoid_tts/ready.wav', '../hyoid_tts/done_good.wav');
   voice.preload(commonUrls);
+
+  // Adapt theme-color meta for dark mode
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const updateThemeColor = () => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = mq.matches ? '#1C1C1E' : '#007AFF';
+  };
+  updateThemeColor();
+  mq.addEventListener('change', updateThemeColor);
 }

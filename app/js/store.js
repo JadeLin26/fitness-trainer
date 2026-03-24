@@ -231,6 +231,34 @@ export function getCheckCount(exerciseId, day) {
   return getDaySessions(exerciseId, day).length;
 }
 
+export function decrementCheck(exerciseId, day) {
+  const data = _load();
+  const sessions = (data[day] || {})[exerciseId] || [];
+  if (sessions.length === 0) return;
+  const removed = sessions.pop();
+  _save(data);
+  _deleteLastCheckFromCloud(day, exerciseId, removed);
+}
+
+async function _deleteLastCheckFromCloud(day, exerciseId, entry) {
+  try {
+    const ts = entry.ts || '';
+    const res = await fetch(
+      `${SB_URL}/training_sessions?training_day=eq.${day}&exercise_id=eq.${exerciseId}&session_kind=eq.check&order=created_at.desc&limit=1`,
+      { headers: SB_HEADERS }
+    );
+    const rows = await res.json();
+    if (rows.length > 0) {
+      await fetch(`${SB_URL}/training_sessions?id=eq.${rows[0].id}`, {
+        method: 'DELETE',
+        headers: SB_HEADERS,
+      });
+    }
+  } catch (e) {
+    console.warn('Supabase delete check failed:', e);
+  }
+}
+
 // Migrate old fitness_checkcount_ data to training_sessions
 (function _migrateOldCheckCounts() {
   const migKey = 'fitness_checkcount_migrated';
@@ -602,18 +630,6 @@ async function _deleteStepsFromCloud(date) {
   ];
   const log = seedData.map(([date, steps]) => ({ steps, date, ts: `${date}T12:00:00.000Z` }));
   _saveStepsLocal(log);
-  try {
-    const rows = seedData.map(([date, steps]) => ({
-      device_id: DEVICE_ID, date, steps, created_at: `${date}T12:00:00.000Z`,
-    }));
-    await fetch(`${SB_URL}/steps_log`, {
-      method: 'POST',
-      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(rows),
-    });
-  } catch (e) {
-    console.warn('Steps seed upload failed:', e);
-  }
   localStorage.setItem(MIG_KEY, String(Date.now()));
 })();
 
@@ -688,14 +704,17 @@ export async function syncFromCloud() {
       }
       _savePeriods([...deduped.values()]);
     }
-    // Sync steps log — cloud is source of truth
+    // Sync steps log — cloud is source of truth, deduplicate by date
     const res5 = await fetch(`${SB_URL}/steps_log?order=date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res5.ok) {
       const cloudSteps = await res5.json();
-      const rebuilt = (cloudSteps || []).map(s => ({ steps: Number(s.steps), date: s.date, ts: s.created_at }));
-      localStorage.setItem(STEPS_KEY, JSON.stringify(rebuilt));
+      const deduped = new Map();
+      for (const s of (cloudSteps || [])) {
+        deduped.set(s.date, { steps: Number(s.steps), date: s.date, ts: s.created_at });
+      }
+      localStorage.setItem(STEPS_KEY, JSON.stringify([...deduped.values()]));
     }
   } catch (e) {
     console.warn('Cloud sync pull failed:', e);

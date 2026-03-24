@@ -18,6 +18,7 @@ let _priorReps = 0;
 let _priorHold = 0;
 let _totalSets = 1;
 let _startSet = 1;
+let _wakeLock = null;
 
 // Public state
 export function getState() { return _state; }
@@ -361,6 +362,15 @@ async function _runTimedReps(ex, startSet = 1) {
 
 // --- Public API ---
 
+async function _acquireWakeLock() {
+  try {
+    if ('wakeLock' in navigator) _wakeLock = await navigator.wakeLock.request('screen');
+  } catch {}
+}
+function _releaseWakeLock() {
+  if (_wakeLock) { _wakeLock.release().catch(() => {}); _wakeLock = null; }
+}
+
 export async function startExercise(exercise, onUpdate, { startSet = 1, priorReps = 0, priorHold = 0 } = {}) {
   if (isRunning()) return;
   _exercise = exercise;
@@ -368,6 +378,7 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
   _cancelFlag = false;
   _pauseFlag = false;
   _startTime = Date.now();
+  _acquireWakeLock();
   _partialResult = 0;
   _priorReps = priorReps;
   _priorHold = priorHold;
@@ -387,6 +398,7 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
     }
 
     bgm.stop();
+    _releaseWakeLock();
     _state = 'done';
     const duration = Math.round((Date.now() - _startTime) / 1000);
 
@@ -409,6 +421,7 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
 
   } catch (e) {
     bgm.stop();
+    _releaseWakeLock();
     const duration = Math.round((Date.now() - _startTime) / 1000);
     if (e.message === 'cancelled' && _partialResult > 0) {
       const d = exercise.defaults;

@@ -20,6 +20,20 @@
   --font: -apple-system, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1C1C1E;
+    --card: #2C2C2E;
+    --card-hover: #3A3A3C;
+    --text: #F2F2F7;
+    --text2: #A1A1A6;
+    --text3: #636366;
+    --border: #3A3A3C;
+    --shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.4);
+  }
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html {
@@ -949,7 +963,7 @@ body {
   transition: all 0.2s;
 }
 .group-btn.active {
-  background: #fff;
+  background: var(--card);
   color: var(--accent);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }

@@ -80,7 +80,7 @@ export function beep(freq = 800, dur = 150) {
     gain.connect(ctx.destination);
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur / 1000);
-    setTimeout(() => { osc.stop(); ctx.close(); }, dur + 50);
+    setTimeout(() => { osc.stop(); }, dur + 50);
   } catch {}
 }
 
