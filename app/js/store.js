@@ -510,6 +510,113 @@ async function _updatePeriodEndInCloud(startDate, endDate) {
   }
 }
 
+// --- Steps tracking ---
+const STEPS_KEY = 'fitness_steps_log';
+
+function _loadSteps() {
+  try { return JSON.parse(localStorage.getItem(STEPS_KEY)) || []; }
+  catch { return []; }
+}
+
+function _saveStepsLocal(log) {
+  localStorage.setItem(STEPS_KEY, JSON.stringify(log));
+}
+
+export function recordSteps(date, steps) {
+  const log = _loadSteps();
+  const ts = new Date().toISOString();
+  const idx = log.findIndex(e => e.date === date);
+  if (idx >= 0) {
+    log[idx] = { steps, date, ts };
+  } else {
+    log.push({ steps, date, ts });
+    log.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  _saveStepsLocal(log);
+  _syncStepsToCloud(date, steps, ts);
+}
+
+async function _syncStepsToCloud(date, steps, ts) {
+  try {
+    await fetch(`${SB_URL}/steps_log`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ device_id: DEVICE_ID, date, steps, created_at: ts }),
+    });
+  } catch (e) {
+    console.warn('Steps cloud sync failed:', e);
+  }
+}
+
+export function getStepsLog() {
+  return _loadSteps();
+}
+
+export function getStepsForDay(date) {
+  const entry = _loadSteps().find(e => e.date === date);
+  return entry ? entry.steps : 0;
+}
+
+export async function deleteSteps(date) {
+  const log = _loadSteps().filter(e => e.date !== date);
+  _saveStepsLocal(log);
+  await _deleteStepsFromCloud(date);
+}
+
+async function _deleteStepsFromCloud(date) {
+  try {
+    await fetch(`${SB_URL}/steps_log?device_id=eq.${DEVICE_ID}&date=eq.${date}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+  } catch (e) {
+    console.warn('Steps cloud delete failed:', e);
+  }
+}
+
+(async function _seedHistoricalSteps() {
+  const MIG_KEY = 'fitness_migration_steps_seed_v1';
+  if (localStorage.getItem(MIG_KEY)) return;
+  const seedData = [
+    ['2026-01-01',12828],['2026-01-02',561],['2026-01-03',903],['2026-01-04',275],
+    ['2026-01-05',665],['2026-01-06',1097],['2026-01-07',666],['2026-01-08',329],
+    ['2026-01-09',1317],['2026-01-10',12639],['2026-01-11',831],['2026-01-12',1290],
+    ['2026-01-13',31],['2026-01-14',1072],['2026-01-15',258],['2026-01-16',946],
+    ['2026-01-17',1233],['2026-01-18',999],['2026-01-19',1580],['2026-01-20',563],
+    ['2026-01-21',1003],['2026-01-22',875],['2026-01-23',1118],['2026-01-24',508],
+    ['2026-01-25',3426],['2026-01-26',968],['2026-01-27',1195],['2026-01-28',437],
+    ['2026-01-29',532],['2026-01-30',539],['2026-01-31',2197],
+    ['2026-02-01',1143],['2026-02-02',1247],['2026-02-03',322],['2026-02-04',4545],
+    ['2026-02-05',1672],['2026-02-06',1210],['2026-02-07',4590],['2026-02-08',9197],
+    ['2026-02-09',901],['2026-02-10',783],['2026-02-11',1104],['2026-02-12',2450],
+    ['2026-02-13',953],['2026-02-14',3613],['2026-02-15',847],['2026-02-16',1723],
+    ['2026-02-17',904],['2026-02-18',8271],['2026-02-19',724],['2026-02-20',613],
+    ['2026-02-21',993],['2026-02-22',2132],['2026-02-23',1068],['2026-02-24',418],
+    ['2026-02-25',948],['2026-02-26',1441],['2026-02-27',603],['2026-02-28',666],
+    ['2026-03-01',859],['2026-03-02',3541],['2026-03-03',2695],['2026-03-04',2143],
+    ['2026-03-05',1029],['2026-03-06',1819],['2026-03-07',1208],['2026-03-08',9645],
+    ['2026-03-09',636],['2026-03-10',11700],['2026-03-11',722],['2026-03-12',933],
+    ['2026-03-13',1891],['2026-03-14',2362],['2026-03-15',2182],['2026-03-16',1243],
+    ['2026-03-17',1110],['2026-03-18',869],['2026-03-19',1369],['2026-03-20',8249],
+    ['2026-03-21',885],['2026-03-22',1444],['2026-03-23',3664],['2026-03-24',462],
+  ];
+  const log = seedData.map(([date, steps]) => ({ steps, date, ts: `${date}T12:00:00.000Z` }));
+  _saveStepsLocal(log);
+  try {
+    const rows = seedData.map(([date, steps]) => ({
+      device_id: DEVICE_ID, date, steps, created_at: `${date}T12:00:00.000Z`,
+    }));
+    await fetch(`${SB_URL}/steps_log`, {
+      method: 'POST',
+      headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(rows),
+    });
+  } catch (e) {
+    console.warn('Steps seed upload failed:', e);
+  }
+  localStorage.setItem(MIG_KEY, String(Date.now()));
+})();
+
 export async function syncFromCloud() {
   try {
     const res = await fetch(`${SB_URL}/training_sessions?order=created_at.asc`, {
@@ -580,6 +687,15 @@ export async function syncFromCloud() {
         deduped.set(p.start_date, { startDate: p.start_date, endDate: p.end_date });
       }
       _savePeriods([...deduped.values()]);
+    }
+    // Sync steps log — cloud is source of truth
+    const res5 = await fetch(`${SB_URL}/steps_log?order=date.asc`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
+    });
+    if (res5.ok) {
+      const cloudSteps = await res5.json();
+      const rebuilt = (cloudSteps || []).map(s => ({ steps: Number(s.steps), date: s.date, ts: s.created_at }));
+      localStorage.setItem(STEPS_KEY, JSON.stringify(rebuilt));
     }
   } catch (e) {
     console.warn('Cloud sync pull failed:', e);

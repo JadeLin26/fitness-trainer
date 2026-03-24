@@ -146,7 +146,7 @@ async function _runPrep(ex) {
   await _sleep(300);
 }
 
-// --- Counted reps mode (wall angel, shaker dyn) ---
+// --- Counted reps mode (wall angel, pelvic tilt, alternating legs) ---
 async function _runCountedReps(ex, startSet = 1) {
   _state = 'active';
   const { sets, reps, tempo, rest } = ex.defaults;
@@ -171,6 +171,7 @@ async function _runCountedReps(ex, startSet = 1) {
     }
 
     // Count reps
+    const halfRep = Math.floor(reps / 2);
     for (let r = 1; r <= reps; r++) {
       await _checkCancel();
       totalDone++;
@@ -183,6 +184,16 @@ async function _runCountedReps(ex, startSet = 1) {
       if (r <= 30) {
         await voice.playNum(ex.ttsDir, r, tempo * 1000 * 0.5);
       }
+
+      if (r === halfRep && reps >= 10) {
+        voice.sayAsync(ex.ttsDir, ex.ttsMap,
+          ex.ttsMap?.['过半了'] ? '过半了' : '过半了');
+      } else if (r === reps - 3 && reps >= 10 && ex.ttsMap?.['快完了']) {
+        voice.sayAsync(ex.ttsDir, ex.ttsMap, '快完了');
+      } else if (r === halfRep + 2 && reps >= 12 && ex.ttsMap?.['坚持']) {
+        voice.sayAsync(ex.ttsDir, ex.ttsMap, '坚持');
+      }
+
       const elapsedMs = performance.now() - tickStart;
       const waitMs = Math.max(0, tempo * 1000 - elapsedMs);
       if (waitMs > 50) await _sleep(waitMs);
@@ -201,7 +212,8 @@ async function _runCountedReps(ex, startSet = 1) {
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
+        if (rem === 10 && rest >= 20) voice.playNum(ex.ttsDir, 10, 0).catch(() => {});
+        else if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
 
@@ -213,7 +225,7 @@ async function _runCountedReps(ex, startSet = 1) {
   return totalDone;
 }
 
-// --- Timed hold mode (shaker iso, subman push) ---
+// --- Timed hold mode (subman push) ---
 async function _runTimedHold(ex, startSet = 1) {
   _state = 'active';
   const { sets, holdSec, rest } = ex.defaults;
@@ -325,7 +337,8 @@ async function _runTimedReps(ex, startSet = 1) {
       }
 
       if (r === Math.floor(repsPerSet / 2)) {
-        voice.sayAsync(ex.ttsDir, ex.ttsMap, '过半了');
+        await voice.say(ex.ttsDir, ex.ttsMap, '过半了');
+        await _sleep(300);
       }
     }
 

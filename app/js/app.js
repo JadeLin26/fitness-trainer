@@ -369,6 +369,12 @@ function _getBodyWeight() {
   return store.getLatestWeight() || 55;
 }
 
+function _calcStepsCaloriesRaw(steps) {
+  if (!steps || steps <= 0) return 0;
+  const weight = _getBodyWeight();
+  return 3.3 * weight * 3.5 / 200 * (steps / 100);
+}
+
 function _calcDayCalories(day) {
   const weight = _getBodyWeight();
   let total = 0;
@@ -381,11 +387,11 @@ function _calcDayCalories(day) {
       total += met * weight * 3.5 / 200 * mins;
     }
 
-    // For mode:null exercises with estimatedMinutes, count calories when checked
     if (!ex.mode && ex.estimatedMinutes && sessions.length === 0 && store.isChecked(ex.id, day)) {
       total += met * weight * 3.5 / 200 * ex.estimatedMinutes;
     }
   }
+  total += _calcStepsCaloriesRaw(store.getStepsForDay(day));
   return Math.round(total);
 }
 
@@ -1070,6 +1076,105 @@ function _renderPeriodPage() {
   });
 }
 
+// --- Steps panel ---
+let _stepsDate = null;
+
+function _openSteps() {
+  _stepsDate = store.trainingDay();
+  $('.steps-panel').style.display = '';
+  document.body.style.overflow = 'hidden';
+  _renderStepsPage();
+}
+
+function _closeSteps() {
+  $('.steps-panel').style.display = 'none';
+  document.body.style.overflow = '';
+  _stepsDate = null;
+}
+
+function _saveSteps() {
+  const input = $('.steps-input');
+  const steps = parseInt(input.value);
+  if (isNaN(steps) || steps < 0 || steps > 200000) return;
+  store.recordSteps(_stepsDate, steps);
+  _renderStepsPage();
+  _updateProgressSummary();
+}
+
+function _stepsEquiv(steps) {
+  if (steps <= 0) return '';
+  return `≈ ${(steps * 0.7 / 1000).toFixed(1)} km`;
+}
+
+function _renderStepsPage() {
+  const date = _stepsDate;
+  const currentSteps = store.getStepsForDay(date);
+  const weekday = ['日', '一', '二', '三', '四', '五', '六'][new Date(date + 'T12:00:00').getDay()];
+  const today = store.trainingDay();
+  $('.steps-date-label').textContent = date === today
+    ? `今天 · ${date} 周${weekday}`
+    : `${date} 周${weekday}`;
+
+  $('.steps-input').value = currentSteps > 0 ? currentSteps : '';
+
+  const summaryEl = $('.steps-summary-display');
+  const cal = Math.round(_calcStepsCaloriesRaw(currentSteps));
+
+  if (currentSteps > 0) {
+    const prefix = date === today ? '今日' : date.slice(5);
+    summaryEl.innerHTML = `
+      <div style="margin-bottom:8px">
+        <span style="font-size:28px;font-weight:700">${currentSteps.toLocaleString()}</span>
+        <span style="font-size:14px;color:var(--text2);margin-left:4px">步</span>
+        <span style="font-size:13px;color:var(--text2);margin-left:8px">${_stepsEquiv(currentSteps)}</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2)">
+        ${prefix}步行消耗 <strong style="color:#E65100">🔥 ${cal} kcal</strong>
+      </div>`;
+  } else {
+    summaryEl.innerHTML = `<div style="color:var(--text2)">${date === today ? '今天还没有记录步数' : `${date} 暂无步数记录`}</div>`;
+  }
+
+  _renderStepsHistory();
+}
+
+function _renderStepsHistory() {
+  const container = $('.steps-history');
+  const log = store.getStepsLog();
+  if (log.length === 0) { container.innerHTML = ''; return; }
+
+  const recent = [...log].reverse().slice(0, 30);
+  let html = '<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">历史记录</div>';
+
+  for (const e of recent) {
+    const wd = ['日', '一', '二', '三', '四', '五', '六'][new Date(e.date + 'T12:00:00').getDay()];
+    const cal = Math.round(_calcStepsCaloriesRaw(e.steps));
+    html += `<div class="sh-item ${e.date === _stepsDate ? 'selected' : ''}" data-date="${e.date}">
+      <span class="sh-date">${e.date.slice(5)} 周${wd}</span>
+      <span class="sh-steps">${e.steps.toLocaleString()} 步</span>
+      <span class="sh-cal">${cal} kcal</span>
+      <button class="sh-del" data-date="${e.date}" title="删除">✕</button>
+    </div>`;
+  }
+  container.innerHTML = html;
+
+  container.querySelectorAll('.sh-item').forEach(item => {
+    item.addEventListener('click', (ev) => {
+      if (ev.target.classList.contains('sh-del')) return;
+      _stepsDate = item.dataset.date;
+      _renderStepsPage();
+    });
+  });
+  container.querySelectorAll('.sh-del').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      store.deleteSteps(btn.dataset.date);
+      _renderStepsPage();
+      _updateProgressSummary();
+    });
+  });
+}
+
 function _renderStats() {
   const weekDays = _getWeekDays(_weekOffset);
   const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
@@ -1291,6 +1396,26 @@ export function init() {
   $('.weight-back')?.addEventListener('click', () => _closeWeight());
   $('.weight-save')?.addEventListener('click', () => _saveWeight());
   $('.weight-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') _saveWeight(); });
+
+  // Steps button
+  $('.btn-steps')?.addEventListener('click', () => _openSteps());
+  $('.steps-back')?.addEventListener('click', () => _closeSteps());
+  $('.steps-save')?.addEventListener('click', () => _saveSteps());
+  $('.steps-input')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') _saveSteps(); });
+  $('.steps-date-prev')?.addEventListener('click', () => {
+    const d = new Date(_stepsDate + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    _stepsDate = _localDateStr(d);
+    _renderStepsPage();
+  });
+  $('.steps-date-next')?.addEventListener('click', () => {
+    const d = new Date(_stepsDate + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    if (_localDateStr(d) <= store.trainingDay()) {
+      _stepsDate = _localDateStr(d);
+      _renderStepsPage();
+    }
+  });
 
   // Stats button
   $('.btn-export')?.addEventListener('click', () => _openStats());
