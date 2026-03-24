@@ -134,9 +134,7 @@ async function _runPrep(ex) {
   for (let rem = prepSec; rem >= 1; rem--) {
     await _checkCancel();
     _emit({ phase: 'prep', total: prepSec, remaining: rem, text: `准备 ${rem}` });
-    if (rem <= 5) {
-      await voice.playNum(ex.ttsDir, rem, 0);
-    }
+    if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0);
     await _sleep(1000);
   }
   await _checkCancel();
@@ -203,9 +201,7 @@ async function _runCountedReps(ex, startSet = 1) {
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 5) {
-          await voice.playNum(ex.ttsDir, rem, 0);
-        }
+        if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
 
@@ -250,7 +246,7 @@ async function _runTimedHold(ex, startSet = 1) {
         text: `保持 ${rem}s`,
       });
       if (holdSec >= 10 && rem <= 3) {
-        await voice.playNum(ex.ttsDir, rem, 0);
+        voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
       } else if (holdSec < 10 && rem <= 2) {
         voice.beep(rem === 1 ? 1000 : 800, 100);
       }
@@ -271,7 +267,7 @@ async function _runTimedHold(ex, startSet = 1) {
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 3) await voice.playNum(ex.ttsDir, rem, 0);
+        if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
       _state = 'active';
@@ -344,7 +340,7 @@ async function _runTimedReps(ex, startSet = 1) {
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 3) await voice.playNum(ex.ttsDir, rem, 0);
+        if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
       _state = 'active';
