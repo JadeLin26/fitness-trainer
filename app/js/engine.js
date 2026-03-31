@@ -172,8 +172,6 @@ async function _runCountedReps(ex, startSet = 1) {
     }
 
     // Count reps
-    const halfRep = Math.floor(reps / 2);
-    const useHalfCue = reps >= 10 && sets > 1;
     for (let r = 1; r <= reps; r++) {
       await _checkCancel();
       totalDone++;
@@ -184,10 +182,7 @@ async function _runCountedReps(ex, startSet = 1) {
         totalDone, text: `${r}`,
       });
 
-      if (useHalfCue && r === halfRep) {
-        voice.sayAsync(ex.ttsDir, ex.ttsMap,
-          ex.ttsMap?.['过半了'] ? '过半了' : '过半了');
-      } else if (r <= 30) {
+      if (r <= 30) {
         await voice.playNum(ex.ttsDir, r, tempo * 1000 * 0.5);
       }
 
@@ -333,10 +328,6 @@ async function _runTimedReps(ex, startSet = 1) {
         voice.beep(800, 120);
       }
 
-      if (r === Math.floor(repsPerSet / 2) && repsPerSet >= 10) {
-        await voice.say(ex.ttsDir, ex.ttsMap, '过半了');
-        await _sleep(300);
-      }
     }
 
     // Rest between sets

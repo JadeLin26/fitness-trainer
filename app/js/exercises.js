@@ -222,7 +222,7 @@ export const exercises = [
     ttsMap: null,
     hasBGM: false,
     video: null,
-    externalVideo: 'https://www.xiaohongshu.com/discovery/item/67d7cd85000000000b03a6c7',
+    externalVideo: 'http://xhslink.com/o/7puF65kMV9g',
     images: [],
   },
 ];

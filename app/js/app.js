@@ -352,7 +352,7 @@ function _renderCheckRing(pct) {
     return `<span class="ring-pct green">100%</span><div class="check-ring full">✓</div>`;
   }
   if (pct <= 0) {
-    return `<span class="ring-pct red">0%</span><div class="check-ring"></div>`;
+    return `<span class="ring-pct muted">0%</span><div class="check-ring"></div>`;
   }
   const deg = Math.round(pct * 360);
   return `<span class="ring-pct yellow">${Math.round(pct * 100)}%</span><div class="check-ring partial" style="background:conic-gradient(var(--green) ${deg}deg, var(--border) ${deg}deg)"></div>`;
@@ -648,7 +648,7 @@ function _openWeight() {
   $('.weight-panel').style.display = '';
   document.body.style.overflow = 'hidden';
   const latest = store.getLatestWeight();
-  if (latest) $('.weight-input').value = latest;
+  if (latest) $('.weight-input').value = Number(latest).toFixed(1);
   _renderWeightPage();
 }
 
@@ -695,7 +695,7 @@ function _renderWeightPage() {
         <span style="font-size:13px;color:var(--text2);margin-left:8px">BMI</span>
       </div>
       <div style="font-size:13px;color:var(--text2)">
-        当前 <strong style="color:var(--text1)">${latest.kg} kg</strong>
+        当前 <strong style="color:var(--text1)">${Number(latest.kg).toFixed(1)} kg</strong>
         ${log.length > 1 ? `· 累计 <strong style="color:${diffColor}">${diffStr} kg</strong>` : ''}
         · 共 ${log.length} 条记录
       </div>`;
@@ -734,9 +734,13 @@ function _renderWeightChart(log) {
   const ch = H - pad.top - pad.bottom;
 
   const weights = log.map(e => e.kg);
-  let minW = Math.min(...weights, kgNormalLo - 1);
-  let maxW = Math.max(...weights, kgNormalHi + 1);
-  if (maxW - minW < 2) { minW -= 1; maxW += 1; }
+  let minW = Math.min(...weights);
+  let maxW = Math.max(...weights);
+  const dataSpan = maxW - minW;
+  const halfRange = Math.max(dataSpan * 0.7, 0.5);
+  const mid = (minW + maxW) / 2;
+  minW = mid - halfRange;
+  maxW = mid + halfRange;
   const range = maxW - minW || 1;
 
   const timestamps = log.map(e => new Date(e.ts).getTime());
@@ -873,7 +877,7 @@ function _renderWeightHistory(log) {
     const bmi = store.calcBMI(e.kg);
     const bmiColor = (bmi >= 18.5 && bmi <= 24) ? '#4CAF50' : bmi > 28 ? '#F44336' : '#FF9800';
     html += `<div class="wh-item">
-      <span class="wh-kg">${e.kg} kg</span>
+      <span class="wh-kg">${Number(e.kg).toFixed(1)} kg</span>
       <span class="wh-bmi" style="color:${bmiColor}">BMI ${bmi.toFixed(1)}</span>
       <span class="wh-time">${dateStr}</span>
       <button class="wh-del" data-idx="${idx}" title="删除">✕</button>

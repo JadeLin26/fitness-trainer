@@ -99,6 +99,7 @@ body {
   transition: background 0.2s;
 }
 .icon-btn:hover { background: var(--card-hover); }
+.icon-btn:active { transform: scale(0.9); background: var(--card-hover); }
 .icon-btn.active { background: var(--accent); color: #fff; }
 
 /* Progress summary bar */
@@ -221,6 +222,7 @@ body {
   margin-right: 4px;
 }
 .ring-pct.red { color: #E53935; }
+.ring-pct.muted { color: var(--text3); }
 .ring-pct.yellow { color: #F9A825; }
 .ring-pct.green { color: var(--green); }
 .expand-arrow {
@@ -498,10 +500,10 @@ body {
   gap: 8px;
 }
 .cat-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text2);
-  letter-spacing: 0.5px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
 }
 .cat-progress {
   font-size: 11px;
@@ -599,15 +601,15 @@ body {
 }
 .wh-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
   font-size: 14px;
+  gap: 8px;
 }
-.wh-kg { font-weight: 700; font-size: 16px; }
-.wh-bmi { font-size: 12px; font-weight: 600; }
-.wh-time { color: var(--text2); font-size: 12px; }
+.wh-kg { font-weight: 700; font-size: 16px; min-width: 80px; }
+.wh-bmi { font-size: 12px; font-weight: 600; min-width: 68px; text-align: center; }
+.wh-time { color: var(--text2); font-size: 12px; flex: 1; text-align: right; }
 .wh-del {
   background: none;
   border: none;
@@ -615,6 +617,7 @@ body {
   font-size: 13px;
   cursor: pointer;
   padding: 4px 8px;
+  flex-shrink: 0;
 }
 
 .stats-panel {
@@ -638,7 +641,22 @@ body {
   border-bottom: 1px solid var(--border);
   z-index: 1;
 }
-.stats-back, .stats-export {
+.stats-back, .weight-back, .steps-back, .period-back {
+  background: none;
+  border: none;
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 6px 8px 6px 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.stats-back:active, .weight-back:active, .steps-back:active, .period-back:active {
+  opacity: 0.5;
+}
+.stats-export {
   background: none;
   border: none;
   font-size: 16px;
@@ -1296,7 +1314,7 @@ body {
 }
 .steps-save {
   padding: 10px 20px;
-  background: #4CAF50;
+  background: var(--accent);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
