@@ -32,6 +32,19 @@ function _estimateRemaining(ex, info) {
   const phase = info.phase;
   let sec = 0;
 
+  if (phase === 'prep') {
+    sec += info.remaining || 0;
+    if (ex.mode === 'counted_reps') {
+      sec += sets * (d.reps || 1) * (d.tempo || 2) + Math.max(0, sets - 1) * rest;
+    } else if (ex.mode === 'timed_hold') {
+      sec += sets * (d.holdSec || 1) + Math.max(0, sets - 1) * rest;
+    } else if (ex.mode === 'timed_reps') {
+      const repTime = (d.holdSec || 5) + (d.restRep || 0);
+      sec += sets * (d.repsPerSet || 1) * repTime + Math.max(0, sets - 1) * rest;
+    }
+    return Math.max(0, Math.round(sec));
+  }
+
   if (phase === 'rest') {
     sec += info.remaining || 0;
     const setsAfter = sets - curSet;
@@ -53,13 +66,11 @@ function _estimateRemaining(ex, info) {
     const repsLeft = reps - (info.rep || 0);
     sec += repsLeft * tempo;
     const setsAfter = sets - curSet;
-    const restsAfter = Math.max(0, setsAfter - 1);
-    sec += setsAfter * reps * tempo + restsAfter * rest;
+    sec += setsAfter * (reps * tempo + rest);
   } else if (ex.mode === 'timed_hold') {
     sec += info.remaining || 0;
     const setsAfter = sets - curSet;
-    const restsAfter = Math.max(0, setsAfter - 1);
-    sec += setsAfter * (d.holdSec || 1) + restsAfter * rest;
+    sec += setsAfter * ((d.holdSec || 1) + rest);
   } else if (ex.mode === 'timed_reps') {
     const repsPerSet = d.repsPerSet || 1;
     const holdSec = d.holdSec || 5;
@@ -69,8 +80,7 @@ function _estimateRemaining(ex, info) {
     const repsLeft = repsPerSet - (info.rep || 0);
     sec += repsLeft * repTime;
     const setsAfter = sets - curSet;
-    const restsAfter = Math.max(0, setsAfter - 1);
-    sec += setsAfter * repsPerSet * repTime + restsAfter * rest;
+    sec += setsAfter * (repsPerSet * repTime + rest);
   }
   return Math.max(0, Math.round(sec));
 }
