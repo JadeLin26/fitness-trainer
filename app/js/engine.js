@@ -35,13 +35,14 @@ function _estimateRemaining(ex, info) {
   if (phase === 'rest') {
     sec += info.remaining || 0;
     const setsAfter = sets - curSet;
+    const restsAfter = Math.max(0, setsAfter - 1);
     if (ex.mode === 'counted_reps') {
-      sec += setsAfter * ((d.reps || 1) * (d.tempo || 2) + rest);
+      sec += setsAfter * (d.reps || 1) * (d.tempo || 2) + restsAfter * rest;
     } else if (ex.mode === 'timed_hold') {
-      sec += setsAfter * ((d.holdSec || 1) + rest);
+      sec += setsAfter * (d.holdSec || 1) + restsAfter * rest;
     } else if (ex.mode === 'timed_reps') {
       const repTime = (d.holdSec || 5) + (d.restRep || 0);
-      sec += setsAfter * ((d.repsPerSet || 1) * repTime + rest);
+      sec += setsAfter * (d.repsPerSet || 1) * repTime + restsAfter * rest;
     }
     return Math.max(0, Math.round(sec));
   }
@@ -52,11 +53,13 @@ function _estimateRemaining(ex, info) {
     const repsLeft = reps - (info.rep || 0);
     sec += repsLeft * tempo;
     const setsAfter = sets - curSet;
-    sec += setsAfter * (reps * tempo + rest);
+    const restsAfter = Math.max(0, setsAfter - 1);
+    sec += setsAfter * reps * tempo + restsAfter * rest;
   } else if (ex.mode === 'timed_hold') {
     sec += info.remaining || 0;
     const setsAfter = sets - curSet;
-    sec += setsAfter * ((d.holdSec || 1) + rest);
+    const restsAfter = Math.max(0, setsAfter - 1);
+    sec += setsAfter * (d.holdSec || 1) + restsAfter * rest;
   } else if (ex.mode === 'timed_reps') {
     const repsPerSet = d.repsPerSet || 1;
     const holdSec = d.holdSec || 5;
@@ -66,7 +69,8 @@ function _estimateRemaining(ex, info) {
     const repsLeft = repsPerSet - (info.rep || 0);
     sec += repsLeft * repTime;
     const setsAfter = sets - curSet;
-    sec += setsAfter * (repsPerSet * repTime + rest);
+    const restsAfter = Math.max(0, setsAfter - 1);
+    sec += setsAfter * repsPerSet * repTime + restsAfter * rest;
   }
   return Math.max(0, Math.round(sec));
 }
@@ -203,7 +207,7 @@ async function _runCountedReps(ex, startSet = 1) {
 
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
-        _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
+        _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem === 10 && rest >= 20) voice.playNum(ex.ttsDir, 10, 0).catch(() => {});
         else if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
@@ -270,7 +274,7 @@ async function _runTimedHold(ex, startSet = 1) {
 
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
-        _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
+        _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
@@ -322,7 +326,7 @@ async function _runTimedReps(ex, startSet = 1) {
       if (r < repsPerSet && restRep > 0) {
         for (let rem = restRep; rem >= 1; rem--) {
           await _checkCancel();
-          _emit({ phase: 'rest', remaining: rem, total: restRep, text: `${rem}` });
+          _emit({ phase: 'rest', set: s, remaining: rem, total: restRep, text: `${rem}` });
           await _sleep(1000);
         }
         voice.beep(800, 120);
@@ -340,7 +344,7 @@ async function _runTimedReps(ex, startSet = 1) {
 
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
-        _emit({ phase: 'rest', remaining: rem, total: rest, text: `休息 ${rem}s` });
+        _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
