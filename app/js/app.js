@@ -316,9 +316,8 @@ function _getLastSessionTime(ex, day) {
   }
   if (ex.dailyCheckTarget) return null;
   if (store.isChecked(ex.id, day)) {
-    const key = `fitness_check_${day}`;
     try {
-      const checks = JSON.parse(localStorage.getItem(key) || '{}');
+      const checks = store.getDayChecks(day);
       if (checks[ex.id]) return new Date(checks[ex.id]);
     } catch {}
   }
@@ -1402,7 +1401,7 @@ function _renderStepsBarChart(dayData, maxSteps) {
 function _renderStats() {
   const weekDays = _getWeekDays(_weekOffset);
   const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-  const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
+  const data = store.getAllTrainingData();
   const allExercises = exercises;
 
   $('.stats-week-label').textContent = _getWeekLabel(_weekOffset);
@@ -1450,7 +1449,7 @@ function _renderStats() {
         const sessions = (data[dayKey] || {})[ex.id] || [];
         const checked = (() => {
           try {
-            return !!JSON.parse(localStorage.getItem(`fitness_check_${dayKey}`) || '{}')[ex.id];
+            return !!store.getDayChecks(dayKey)[ex.id];
           } catch { return false; }
         })();
 
@@ -1555,7 +1554,7 @@ function _renderStats() {
 
 function _renderDayDetail(day) {
   const container = $('.stats-day-detail');
-  const data = JSON.parse(localStorage.getItem('fitness_training_data') || '{}');
+  const data = store.getAllTrainingData();
   const dayData = data[day] || {};
   const exerciseMap = {};
   for (const ex of exercises) exerciseMap[ex.id] = ex.name;
@@ -1602,7 +1601,7 @@ function _renderDayDetail(day) {
 
   // Also show checklist items
   try {
-    const checks = JSON.parse(localStorage.getItem(`fitness_check_${day}`) || '{}');
+    const checks = store.getDayChecks(day);
     const checkedIds = Object.keys(checks);
   } catch {}
 

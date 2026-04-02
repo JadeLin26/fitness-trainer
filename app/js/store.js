@@ -50,6 +50,14 @@ function _save(data) {
 
 export function trainingDay(now) { return _trainingDay(now); }
 
+export function getAllTrainingData() { return _load(); }
+
+export function getDayChecks(day) {
+  const key = `${_pfx}fitness_check_${day}`;
+  try { return JSON.parse(localStorage.getItem(key) || '{}'); }
+  catch { return {}; }
+}
+
 // One-time migration: fix dates stored with wrong timezone due to toISOString() UTC bug
 function _migrateTimezoneDates() {
   const MIG_KEY = `${_pfx}fitness_migration_tz_v1`;
@@ -118,7 +126,7 @@ function _migrateTimezoneDates() {
 
 async function _migrateCloudDates() {
   try {
-    const res = await fetch(`${SB_URL}/training_sessions?select=id,training_day,created_at`, {
+    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&select=id,training_day,created_at`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res.ok) return;
@@ -135,7 +143,7 @@ async function _migrateCloudDates() {
       }
     }
 
-    const res2 = await fetch(`${SB_URL}/daily_checklist?select=id,training_day,checked_at`, {
+    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${DEVICE_ID}&select=id,training_day,checked_at`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res2.ok) return;
@@ -164,9 +172,9 @@ if (USER_ID !== 'default') {
   const purgeKey = `${_pfx}fitness_purge_v1`;
   if (!localStorage.getItem(purgeKey)) {
     _save({});
-    localStorage.removeItem(WEIGHT_KEY);
-    localStorage.removeItem(STEPS_KEY);
-    localStorage.removeItem(PERIOD_KEY);
+    localStorage.removeItem(`${_pfx}fitness_weight_log`);
+    localStorage.removeItem(`${_pfx}fitness_steps_log`);
+    localStorage.removeItem(`${_pfx}fitness_period_log`);
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
       if (k?.startsWith(`${_pfx}fitness_check_`)) localStorage.removeItem(k);
@@ -267,7 +275,7 @@ async function _deleteLastCheckFromCloud(day, exerciseId, entry) {
   try {
     const ts = entry.ts || '';
     const res = await fetch(
-      `${SB_URL}/training_sessions?training_day=eq.${day}&exercise_id=eq.${exerciseId}&session_kind=eq.check&order=created_at.desc&limit=1`,
+      `${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&training_day=eq.${day}&exercise_id=eq.${exerciseId}&session_kind=eq.check&order=created_at.desc&limit=1`,
       { headers: SB_HEADERS }
     );
     const rows = await res.json();
