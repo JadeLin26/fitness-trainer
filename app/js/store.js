@@ -159,6 +159,22 @@ async function _migrateCloudDates() {
 
 _migrateTimezoneDates();
 
+// One-time purge: clear data polluted from unfiltered cloud sync for non-default users
+if (USER_ID !== 'default') {
+  const purgeKey = `${_pfx}fitness_purge_v1`;
+  if (!localStorage.getItem(purgeKey)) {
+    _save({});
+    localStorage.removeItem(WEIGHT_KEY);
+    localStorage.removeItem(STEPS_KEY);
+    localStorage.removeItem(PERIOD_KEY);
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith(`${_pfx}fitness_check_`)) localStorage.removeItem(k);
+    }
+    localStorage.setItem(purgeKey, '1');
+  }
+}
+
 export function recordSession(exerciseId, { sets, repsPerSet, totalReps, holdSeconds, durationSeconds, sessionKind }) {
   const data = _load();
   const now = new Date();
