@@ -650,7 +650,7 @@ async function _deleteStepsFromCloud(date) {
 
 export async function syncFromCloud() {
   try {
-    const res = await fetch(`${SB_URL}/training_sessions?order=created_at.asc`, {
+    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res.ok) return;
@@ -682,7 +682,7 @@ export async function syncFromCloud() {
       if (merged) _save(local);
     }
 
-    const res2 = await fetch(`${SB_URL}/daily_checklist`, {
+    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${DEVICE_ID}`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res2.ok) return;
@@ -699,7 +699,7 @@ export async function syncFromCloud() {
       }
     }
     // Sync weight log — cloud is source of truth, local replaced entirely
-    const res3 = await fetch(`${SB_URL}/weight_log?order=created_at.asc`, {
+    const res3 = await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res3.ok) {
@@ -708,7 +708,7 @@ export async function syncFromCloud() {
       localStorage.setItem(WEIGHT_KEY, JSON.stringify(rebuilt));
     }
     // Sync period log — cloud is source of truth, local replaced entirely
-    const res4 = await fetch(`${SB_URL}/period_log?order=start_date.asc`, {
+    const res4 = await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&order=start_date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res4.ok) {
@@ -720,7 +720,7 @@ export async function syncFromCloud() {
       _savePeriods([...deduped.values()]);
     }
     // Sync steps log — cloud is source of truth, deduplicate by date
-    const res5 = await fetch(`${SB_URL}/steps_log?order=date.asc`, {
+    const res5 = await fetch(`${SB_URL}/steps_log?device_id=eq.${DEVICE_ID}&order=date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res5.ok) {
