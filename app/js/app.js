@@ -1718,6 +1718,13 @@ export function init() {
     _closeOverlay();
   });
 
+  const uid = store.getUserId();
+  const badge = document.getElementById('user-badge');
+  if (badge && uid !== 'default') {
+    badge.textContent = `· ${uid}`;
+    badge.style.cssText = 'background:var(--accent);color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-left:4px;vertical-align:middle';
+  }
+
   renderList();
 
   store.syncFromCloud().then(() => renderList());

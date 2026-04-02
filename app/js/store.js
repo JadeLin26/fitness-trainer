@@ -1,8 +1,14 @@
 // localStorage-based training data store with 6AM day boundary + Supabase cloud sync via REST API.
+// Multi-user: URL hash selects user profile (e.g. #b1). All storage keys are prefixed per user.
 
-const STORE_KEY = 'fitness_training_data';
-const CONFIG_KEY = 'fitness_training_config';
+const USER_ID = (location.hash || '').replace('#', '').toLowerCase() || 'default';
+const _pfx = USER_ID === 'default' ? '' : `${USER_ID}_`;
+
+const STORE_KEY = `${_pfx}fitness_training_data`;
+const CONFIG_KEY = `${_pfx}fitness_training_config`;
 const DEVICE_ID = _getDeviceId();
+
+export function getUserId() { return USER_ID; }
 
 const SB_URL = 'https://xdflczptaiptmrwtaoye.supabase.co/rest/v1';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkZmxjenB0YWlwdG1yd3Rhb3llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTkxNDcsImV4cCI6MjA4OTQzNTE0N30.df1tan5GOwfiauVqgManHpkxc24m7nPcPcLGJrXnk2M';
@@ -14,10 +20,11 @@ const SB_HEADERS = {
 };
 
 function _getDeviceId() {
-  let id = localStorage.getItem('fitness_device_id');
+  const key = `${_pfx}fitness_device_id`;
+  let id = localStorage.getItem(key);
   if (!id) {
     id = crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-    localStorage.setItem('fitness_device_id', id);
+    localStorage.setItem(key, id);
   }
   return id;
 }
@@ -45,7 +52,7 @@ export function trainingDay(now) { return _trainingDay(now); }
 
 // One-time migration: fix dates stored with wrong timezone due to toISOString() UTC bug
 function _migrateTimezoneDates() {
-  const MIG_KEY = 'fitness_migration_tz_v1';
+  const MIG_KEY = `${_pfx}fitness_migration_tz_v1`;
   if (localStorage.getItem(MIG_KEY)) return;
 
   // Fix training_data
@@ -76,10 +83,10 @@ function _migrateTimezoneDates() {
   const checkKeys = [];
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (k?.startsWith('fitness_check_')) checkKeys.push(k);
+    if (k?.startsWith(`${_pfx}fitness_check_`)) checkKeys.push(k);
   }
   for (const key of checkKeys) {
-    const oldDay = key.slice('fitness_check_'.length);
+    const oldDay = key.slice(`${_pfx}fitness_check_`.length);
     const checks = JSON.parse(localStorage.getItem(key) || '{}');
     const toMove = {};
     for (const [exId, ts] of Object.entries(checks)) {
@@ -94,7 +101,7 @@ function _migrateTimezoneDates() {
     }
     for (const [exId, { ts, correctDay }] of Object.entries(toMove)) {
       delete checks[exId];
-      const newKey = `fitness_check_${correctDay}`;
+      const newKey = `${_pfx}fitness_check_${correctDay}`;
       const newChecks = JSON.parse(localStorage.getItem(newKey) || '{}');
       newChecks[exId] = ts;
       localStorage.setItem(newKey, JSON.stringify(newChecks));
@@ -215,7 +222,7 @@ export function getAllDays() {
 }
 
 export function markChecked(exerciseId, day) {
-  const key = `fitness_check_${day}`;
+  const key = `${_pfx}fitness_check_${day}`;
   const checks = JSON.parse(localStorage.getItem(key) || '{}');
   checks[exerciseId] = new Date().toISOString();
   localStorage.setItem(key, JSON.stringify(checks));
@@ -261,17 +268,17 @@ async function _deleteLastCheckFromCloud(day, exerciseId, entry) {
 
 // Migrate old fitness_checkcount_ data to training_sessions
 (function _migrateOldCheckCounts() {
-  const migKey = 'fitness_checkcount_migrated';
+  const migKey = `${_pfx}fitness_checkcount_migrated`;
   if (localStorage.getItem(migKey)) return;
   const data = _load();
   let changed = false;
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k?.startsWith('fitness_checkcount_')) continue;
-    const day = k.replace('fitness_checkcount_', '');
+    if (!k?.startsWith(`${_pfx}fitness_checkcount_`)) continue;
+    const day = k.replace(`${_pfx}fitness_checkcount_`, '');
     try {
       const counts = JSON.parse(localStorage.getItem(k) || '{}');
-      const checkKey = `fitness_check_${day}`;
+      const checkKey = `${_pfx}fitness_check_${day}`;
       const checkData = JSON.parse(localStorage.getItem(checkKey) || '{}');
       for (const [exId, count] of Object.entries(counts)) {
         if (!data[day]) data[day] = {};
@@ -315,7 +322,7 @@ async function _syncCheckToCloud(day, exerciseId) {
 
 
 export function isChecked(exerciseId, day) {
-  const key = `fitness_check_${day}`;
+  const key = `${_pfx}fitness_check_${day}`;
   const checks = JSON.parse(localStorage.getItem(key) || '{}');
   return !!checks[exerciseId];
 }
@@ -347,8 +354,13 @@ export function exportCSV() {
 }
 
 // --- Weight tracking ---
-const WEIGHT_KEY = 'fitness_weight_log';
-const PROFILE = { heightCm: 163, age: 28, sex: 'female' };
+const WEIGHT_KEY = `${_pfx}fitness_weight_log`;
+
+const USER_PROFILES = {
+  default: { heightCm: 163, age: 28, sex: 'female' },
+  b1:      { heightCm: 163, age: 28, sex: 'female' },
+};
+const PROFILE = USER_PROFILES[USER_ID] || USER_PROFILES.default;
 
 function _loadWeights() {
   try { return JSON.parse(localStorage.getItem(WEIGHT_KEY)) || []; }
@@ -376,7 +388,7 @@ async function _syncWeightToCloud(kg, ts) {
 }
 
 async function _migrateWeightsToCloud() {
-  const MIG_KEY = 'fitness_migration_weight_v1';
+  const MIG_KEY = `${_pfx}fitness_migration_weight_v1`;
   if (localStorage.getItem(MIG_KEY)) return;
   const log = _loadWeights();
   if (!log.length) { localStorage.setItem(MIG_KEY, '1'); return; }
@@ -444,7 +456,7 @@ export function getProfile() {
 }
 
 // --- Period tracking ---
-const PERIOD_KEY = 'fitness_period_log';
+const PERIOD_KEY = `${_pfx}fitness_period_log`;
 
 function _loadPeriods() {
   try { return JSON.parse(localStorage.getItem(PERIOD_KEY)) || []; }
@@ -539,7 +551,7 @@ async function _updatePeriodEndInCloud(startDate, endDate) {
 }
 
 // --- Steps tracking ---
-const STEPS_KEY = 'fitness_steps_log';
+const STEPS_KEY = `${_pfx}fitness_steps_log`;
 
 function _loadSteps() {
   try { return JSON.parse(localStorage.getItem(STEPS_KEY)) || []; }
@@ -603,7 +615,8 @@ async function _deleteStepsFromCloud(date) {
 }
 
 (async function _seedHistoricalSteps() {
-  const MIG_KEY = 'fitness_migration_steps_seed_v2';
+  if (USER_ID !== 'default') return;
+  const MIG_KEY = `${_pfx}fitness_migration_steps_seed_v2`;
   if (localStorage.getItem(MIG_KEY)) return;
   const seedData = [
     ['2026-01-01',12828],['2026-01-02',561],['2026-01-03',903],['2026-01-04',275],
@@ -677,7 +690,7 @@ export async function syncFromCloud() {
 
     if (checks?.length) {
       for (const c of checks) {
-        const key = `fitness_check_${c.training_day}`;
+        const key = `${_pfx}fitness_check_${c.training_day}`;
         const local = JSON.parse(localStorage.getItem(key) || '{}');
         if (!local[c.exercise_id]) {
           local[c.exercise_id] = c.checked_at;
