@@ -20,6 +20,12 @@ let _totalSets = 1;
 let _startSet = 1;
 let _wakeLock = null;
 
+function _restTtsDir(ttsDir) {
+  if (ttsDir === '../hyoid_tts') return '../trainer_tts';
+  if (ttsDir === '../trainer_tts') return '../hyoid_tts';
+  return ttsDir;
+}
+
 // Public state
 export function getState() { return _state; }
 export function isRunning() { return _state !== 'idle' && _state !== 'done'; }
@@ -215,11 +221,12 @@ async function _runCountedReps(ex, startSet = 1) {
         await voice.playKey(ex.ttsDir, `rest_next_${nextSet}`, 0).catch(() => {});
       }
 
+      const restDir = _restTtsDir(ex.ttsDir);
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem === 10 && rest >= 20) voice.playNum(ex.ttsDir, 10, 0).catch(() => {});
-        else if (rem <= 5) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
+        if (rem === 10 && rest >= 20) voice.playNum(restDir, 10, 0).catch(() => {});
+        else if (rem <= 5) voice.playNum(restDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
 
@@ -282,10 +289,11 @@ async function _runTimedHold(ex, startSet = 1) {
         voice.sayAsync(ex.ttsDir, ex.ttsMap, '休息');
       });
 
+      const restDir = _restTtsDir(ex.ttsDir);
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
+        if (rem <= 3) voice.playNum(restDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
       _state = 'active';
@@ -327,7 +335,7 @@ async function _runTimedReps(ex, startSet = 1) {
           phase: 'hold', set: s, totalSets: sets, rep: r, totalReps: repsPerSet,
           remaining: rem, total: holdSec, text: `${rem}`,
         });
-        if (rem <= 2) voice.beep(rem === 1 ? 1000 : 800, 100);
+        voice.beep(600 + (holdSec - rem) * 100, 100);
         await _sleep(1000);
       }
       voice.beep(600, 100);
@@ -352,10 +360,11 @@ async function _runTimedReps(ex, startSet = 1) {
         voice.sayAsync(ex.ttsDir, ex.ttsMap, '休息');
       });
 
+      const restDir = _restTtsDir(ex.ttsDir);
       for (let rem = rest; rem >= 1; rem--) {
         await _checkCancel();
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
-        if (rem <= 3) voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
+        if (rem <= 3) voice.playNum(restDir, rem, 0).catch(() => {});
         await _sleep(1000);
       }
       _state = 'active';
