@@ -1717,6 +1717,10 @@ export function init() {
     _closeOverlay();
   });
 
+  window.addEventListener('beforeunload', () => {
+    if (engine.isRunning()) engine.cancel();
+  });
+
   const uid = store.getUserId();
   const badge = document.getElementById('user-badge');
   if (badge && uid !== 'default') {

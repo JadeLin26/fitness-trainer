@@ -19,6 +19,23 @@ let _priorHold = 0;
 let _totalSets = 1;
 let _startSet = 1;
 let _wakeLock = null;
+let _progressSaved = false;
+
+function _savePartialProgress() {
+  if (_progressSaved || !_exercise || _partialResult <= 0) return;
+  if (_state === 'idle' || _state === 'done') return;
+  const duration = Math.round((Date.now() - _startTime) / 1000);
+  const d = _exercise.defaults;
+  store.recordSession(_exercise.id, {
+    sets: d.sets,
+    repsPerSet: d.reps || d.repsPerSet || 0,
+    totalReps: _exercise.mode === 'timed_hold' ? 0 : _partialResult,
+    holdSeconds: _exercise.mode === 'timed_hold' ? _partialResult : 0,
+    durationSeconds: duration,
+    sessionKind: '训练中止',
+  });
+  _progressSaved = true;
+}
 
 function _restTtsDir(ttsDir) {
   if (ttsDir === '../hyoid_tts') return '../trainer_tts';
@@ -394,6 +411,7 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
   _startTime = Date.now();
   _acquireWakeLock();
   _partialResult = 0;
+  _progressSaved = false;
   _priorReps = priorReps;
   _priorHold = priorHold;
   _totalSets = exercise.defaults.sets || 1;
@@ -437,16 +455,8 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
     bgm.stop();
     _releaseWakeLock();
     const duration = Math.round((Date.now() - _startTime) / 1000);
-    if (e.message === 'cancelled' && _partialResult > 0) {
-      const d = exercise.defaults;
-      store.recordSession(exercise.id, {
-        sets: d.sets,
-        repsPerSet: d.reps || d.repsPerSet || 0,
-        totalReps: exercise.mode === 'timed_hold' ? 0 : _partialResult,
-        holdSeconds: exercise.mode === 'timed_hold' ? _partialResult : 0,
-        durationSeconds: duration,
-        sessionKind: '训练中止',
-      });
+    if (e.message === 'cancelled' && _partialResult > 0 && !_progressSaved) {
+      _savePartialProgress();
     }
     _state = 'idle';
     _emit({
@@ -479,6 +489,7 @@ export function resume() {
 }
 
 export function cancel() {
+  _savePartialProgress();
   _cancelFlag = true;
   if (_pauseFlag) {
     _pauseFlag = false;
