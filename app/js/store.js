@@ -6,7 +6,7 @@ const _pfx = USER_ID === 'default' ? '' : `${USER_ID}_`;
 
 const STORE_KEY = `${_pfx}fitness_training_data`;
 const CONFIG_KEY = `${_pfx}fitness_training_config`;
-const DEVICE_ID = _getDeviceId();
+const SYNC_ID = `user_${USER_ID}`;
 
 export function getUserId() { return USER_ID; }
 
@@ -19,15 +19,27 @@ const SB_HEADERS = {
   'Prefer': 'return=minimal',
 };
 
-function _getDeviceId() {
-  const key = `${_pfx}fitness_device_id`;
-  let id = localStorage.getItem(key);
-  if (!id) {
-    id = crypto.randomUUID?.() || Math.random().toString(36).slice(2);
-    localStorage.setItem(key, id);
+// Migrate cloud data from old random device_id to user-based SYNC_ID
+(async function _migrateToUserSync() {
+  const migKey = `${_pfx}fitness_migration_user_sync_v1`;
+  if (localStorage.getItem(migKey)) return;
+  const oldKey = `${_pfx}fitness_device_id`;
+  const oldId = localStorage.getItem(oldKey);
+  if (oldId && oldId !== SYNC_ID) {
+    const tables = ['training_sessions', 'daily_checklist', 'weight_log', 'period_log', 'steps_log'];
+    for (const table of tables) {
+      try {
+        await fetch(`${SB_URL}/${table}?device_id=eq.${oldId}`, {
+          method: 'PATCH',
+          headers: SB_HEADERS,
+          body: JSON.stringify({ device_id: SYNC_ID }),
+        });
+      } catch {}
+    }
+    localStorage.removeItem(oldKey);
   }
-  return id;
-}
+  localStorage.setItem(migKey, '1');
+})();
 
 function _localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -126,7 +138,7 @@ function _migrateTimezoneDates() {
 
 async function _migrateCloudDates() {
   try {
-    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&select=id,training_day,created_at`, {
+    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${SYNC_ID}&select=id,training_day,created_at`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res.ok) return;
@@ -143,7 +155,7 @@ async function _migrateCloudDates() {
       }
     }
 
-    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${DEVICE_ID}&select=id,training_day,checked_at`, {
+    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${SYNC_ID}&select=id,training_day,checked_at`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res2.ok) return;
@@ -206,7 +218,7 @@ async function _syncSessionToCloud(day, exerciseId, entry) {
       method: 'POST',
       headers: SB_HEADERS,
       body: JSON.stringify({
-        device_id: DEVICE_ID,
+        device_id: SYNC_ID,
         training_day: day,
         exercise_id: exerciseId,
         time: entry.time,
@@ -275,7 +287,7 @@ async function _deleteLastCheckFromCloud(day, exerciseId, entry) {
   try {
     const ts = entry.ts || '';
     const res = await fetch(
-      `${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&training_day=eq.${day}&exercise_id=eq.${exerciseId}&session_kind=eq.check&order=created_at.desc&limit=1`,
+      `${SB_URL}/training_sessions?device_id=eq.${SYNC_ID}&training_day=eq.${day}&exercise_id=eq.${exerciseId}&session_kind=eq.check&order=created_at.desc&limit=1`,
       { headers: SB_HEADERS }
     );
     const rows = await res.json();
@@ -332,7 +344,7 @@ async function _syncCheckToCloud(day, exerciseId) {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({
-        device_id: DEVICE_ID,
+        device_id: SYNC_ID,
         training_day: day,
         exercise_id: exerciseId,
         checked_at: new Date().toISOString(),
@@ -404,7 +416,7 @@ async function _syncWeightToCloud(kg, ts) {
     await fetch(`${SB_URL}/weight_log`, {
       method: 'POST',
       headers: SB_HEADERS,
-      body: JSON.stringify({ device_id: DEVICE_ID, kg, created_at: ts }),
+      body: JSON.stringify({ device_id: SYNC_ID, kg, created_at: ts }),
     });
   } catch (e) {
     console.warn('Weight cloud sync failed:', e);
@@ -417,7 +429,7 @@ async function _migrateWeightsToCloud() {
   const log = _loadWeights();
   if (!log.length) { localStorage.setItem(MIG_KEY, '1'); return; }
   try {
-    const rows = log.map(w => ({ device_id: DEVICE_ID, kg: w.kg, created_at: w.ts }));
+    const rows = log.map(w => ({ device_id: SYNC_ID, kg: w.kg, created_at: w.ts }));
     await fetch(`${SB_URL}/weight_log`, {
       method: 'POST',
       headers: SB_HEADERS,
@@ -447,7 +459,7 @@ async function _deleteWeightFromCloud(ts) {
     const d = new Date(ts);
     const lo = new Date(d.getTime() - 1000).toISOString();
     const hi = new Date(d.getTime() + 1000).toISOString();
-    await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&created_at=gte.${lo}&created_at=lte.${hi}`, {
+    await fetch(`${SB_URL}/weight_log?device_id=eq.${SYNC_ID}&created_at=gte.${lo}&created_at=lte.${hi}`, {
       method: 'DELETE',
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
@@ -520,7 +532,7 @@ export async function deletePeriod(startDate) {
 
 async function _deletePeriodFromCloud(startDate) {
   try {
-    await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&start_date=eq.${startDate}`, {
+    await fetch(`${SB_URL}/period_log?device_id=eq.${SYNC_ID}&start_date=eq.${startDate}`, {
       method: 'DELETE',
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
@@ -555,7 +567,7 @@ async function _syncPeriodToCloud(startDate, endDate) {
     await fetch(`${SB_URL}/period_log`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ device_id: DEVICE_ID, start_date: startDate, end_date: endDate }),
+      body: JSON.stringify({ device_id: SYNC_ID, start_date: startDate, end_date: endDate }),
     });
   } catch (e) {
     console.warn('Period cloud sync failed:', e);
@@ -564,7 +576,7 @@ async function _syncPeriodToCloud(startDate, endDate) {
 
 async function _updatePeriodEndInCloud(startDate, endDate) {
   try {
-    await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&start_date=eq.${startDate}`, {
+    await fetch(`${SB_URL}/period_log?device_id=eq.${SYNC_ID}&start_date=eq.${startDate}`, {
       method: 'PATCH',
       headers: SB_HEADERS,
       body: JSON.stringify({ end_date: endDate }),
@@ -605,7 +617,7 @@ async function _syncStepsToCloud(date, steps, ts) {
     await fetch(`${SB_URL}/steps_log`, {
       method: 'POST',
       headers: { ...SB_HEADERS, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify({ device_id: DEVICE_ID, date, steps, created_at: ts }),
+      body: JSON.stringify({ device_id: SYNC_ID, date, steps, created_at: ts }),
     });
   } catch (e) {
     console.warn('Steps cloud sync failed:', e);
@@ -629,7 +641,7 @@ export async function deleteSteps(date) {
 
 async function _deleteStepsFromCloud(date) {
   try {
-    await fetch(`${SB_URL}/steps_log?device_id=eq.${DEVICE_ID}&date=eq.${date}`, {
+    await fetch(`${SB_URL}/steps_log?device_id=eq.${SYNC_ID}&date=eq.${date}`, {
       method: 'DELETE',
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
@@ -674,7 +686,7 @@ async function _deleteStepsFromCloud(date) {
 
 export async function syncFromCloud() {
   try {
-    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${DEVICE_ID}&order=created_at.asc`, {
+    const res = await fetch(`${SB_URL}/training_sessions?device_id=eq.${SYNC_ID}&order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res.ok) return;
@@ -706,7 +718,7 @@ export async function syncFromCloud() {
       if (merged) _save(local);
     }
 
-    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${DEVICE_ID}`, {
+    const res2 = await fetch(`${SB_URL}/daily_checklist?device_id=eq.${SYNC_ID}`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (!res2.ok) return;
@@ -723,7 +735,7 @@ export async function syncFromCloud() {
       }
     }
     // Sync weight log — cloud is source of truth, local replaced entirely
-    const res3 = await fetch(`${SB_URL}/weight_log?device_id=eq.${DEVICE_ID}&order=created_at.asc`, {
+    const res3 = await fetch(`${SB_URL}/weight_log?device_id=eq.${SYNC_ID}&order=created_at.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res3.ok) {
@@ -732,7 +744,7 @@ export async function syncFromCloud() {
       localStorage.setItem(WEIGHT_KEY, JSON.stringify(rebuilt));
     }
     // Sync period log — cloud is source of truth, local replaced entirely
-    const res4 = await fetch(`${SB_URL}/period_log?device_id=eq.${DEVICE_ID}&order=start_date.asc`, {
+    const res4 = await fetch(`${SB_URL}/period_log?device_id=eq.${SYNC_ID}&order=start_date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res4.ok) {
@@ -744,7 +756,7 @@ export async function syncFromCloud() {
       _savePeriods([...deduped.values()]);
     }
     // Sync steps log — cloud is source of truth, deduplicate by date
-    const res5 = await fetch(`${SB_URL}/steps_log?device_id=eq.${DEVICE_ID}&order=date.asc`, {
+    const res5 = await fetch(`${SB_URL}/steps_log?device_id=eq.${SYNC_ID}&order=date.asc`, {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` },
     });
     if (res5.ok) {
