@@ -26,6 +26,8 @@ const EX_ICON_FILES = {
   'single_leg_lower': 'icons/icon_core.png',
   'single_glute_bridge': 'icons/icon_glute.png',
   'single_leg_deadlift': 'icons/icon_hamstring.png',
+  'serratus_wall_push': 'icons/icon_serratus.png',
+  'y_raise': 'icons/icon_lower_trap.png',
 };
 
 function _getExIcon(exId, category) {
@@ -365,6 +367,8 @@ const EX_MET = {
   'single_leg_lower': 3.5, 'single_glute_bridge': 4.0,
   'single_leg_deadlift': 4.0,
   'band_back': 3.5,
+  'serratus_wall_push': 2.5,
+  'y_raise': 2.5,
 };
 function _getBodyWeight() {
   return store.getLatestWeight() || 55;
