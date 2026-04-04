@@ -296,6 +296,8 @@ body {
 }
 .ex-video {
   width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
   border-radius: var(--radius-sm);
   margin-bottom: 14px;
 }
@@ -446,8 +448,9 @@ body {
   margin-bottom: 8px;
 }
 .training-ref-vid {
-  width: 100%;
   max-width: 280px;
+  max-height: 40vh;
+  object-fit: contain;
   border-radius: 10px;
   margin-bottom: 8px;
 }
