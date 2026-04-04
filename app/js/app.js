@@ -85,7 +85,7 @@ function renderList() {
       const hasImages = ex.images && ex.images.length > 0;
 
       const mediaHtml = hasVideo
-        ? `<video class="ex-video" src="${ex.video}" controls preload="none" playsinline></video>`
+        ? `<video class="ex-video" src="${ex.video}" controls preload="metadata" playsinline></video>`
         : hasImages
           ? `<div class="ex-images">${ex.images.map(src => `<img class="ex-image" src="${src}" loading="lazy" alt="${ex.name}">`).join('')}</div>`
           : '';

@@ -295,9 +295,10 @@ body {
   color: var(--text2);
 }
 .ex-video {
-  width: 100%;
-  max-height: 50vh;
-  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 70vh;
   border-radius: var(--radius-sm);
   margin-bottom: 14px;
 }
