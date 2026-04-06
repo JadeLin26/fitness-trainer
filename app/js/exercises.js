@@ -100,7 +100,7 @@ export const exercises = [
     hasSetAnnounce: false,
     hasBGM: false,
     video: '../videos/chin_tuck.mp4',
-    externalVideo: 'https://www.youtube.com/watch?v=ILNQF20c1dU',
+    externalVideo: 'https://www.youtube.com/watch?v=1v9e8PdmqEI',
     images: ['../images/chin_tuck_demo.jpg'],
   },
   {
