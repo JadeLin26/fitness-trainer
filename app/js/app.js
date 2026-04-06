@@ -11,7 +11,6 @@ const $$ = s => document.querySelectorAll(s);
 const CAT_ICON_FILES = {
   '头前倾矫正': 'icons/icon_neck.png',
   '舌骨肌群': 'icons/icon_hyoid.png',
-  '姿势矫正': 'icons/icon_posture.png',
   '辅助训练': 'icons/icon_auxiliary.png',
   '骨盆前倾矫正': 'icons/icon_pelvis.png',
   '圆肩驼背矫正': 'icons/icon_back.png',
