@@ -141,7 +141,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: false,
     video: null,
-    images: [],
+    images: ['../images/soft_palate_lift_demo.jpg'],
   },
   {
     id: 'dry_gargle',
@@ -161,7 +161,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: false,
     video: null,
-    images: [],
+    images: ['../images/dry_gargle_demo.jpg'],
   },
   {
     id: 'vowel_exercise',
@@ -181,7 +181,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: false,
     video: null,
-    images: [],
+    images: ['../images/vowel_exercise_demo.jpg'],
   },
   {
     id: 'cheek_suction',
@@ -201,7 +201,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: false,
     video: null,
-    images: [],
+    images: ['../images/cheek_suction_demo.jpg'],
   },
   {
     id: 'straw_blow',
@@ -221,7 +221,7 @@ export const exercises = [
     hasSetAnnounce: true,
     hasBGM: false,
     video: null,
-    images: [],
+    images: ['../images/straw_blow_demo.jpg'],
   },
   {
     id: 'serratus_wall_push',
