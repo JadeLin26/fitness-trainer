@@ -11,6 +11,7 @@ const $$ = s => document.querySelectorAll(s);
 const CAT_ICON_FILES = {
   '头前倾矫正': 'icons/icon_neck.png',
   '舌骨肌群': 'icons/icon_hyoid.png',
+  '口咽抗鼾': 'icons/icon_airway.png',
   '辅助训练': 'icons/icon_auxiliary.png',
   '骨盆前倾矫正': 'icons/icon_pelvis.png',
   '圆肩驼背矫正': 'icons/icon_back.png',
@@ -362,6 +363,8 @@ const EX_MET = {
   'wall_angel': 3.0,
   'subman_push': 2.0, 'fesm': 2.0,
   'chin_tuck': 2.0, 'mewing': 1.0,
+  'soft_palate_lift': 1.0, 'dry_gargle': 1.0, 'vowel_exercise': 1.0,
+  'cheek_suction': 1.0, 'straw_blow': 1.5,
   'pelvic_tilt': 3.0,
   'single_leg_lower': 3.5, 'single_glute_bridge': 4.0,
   'single_leg_deadlift': 4.0,
