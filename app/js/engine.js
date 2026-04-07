@@ -57,13 +57,17 @@ function _estimateRemaining(ex, info) {
 
   if (phase === 'prep') {
     sec += info.remaining || 0;
+    const remSets = sets - _startSet + 1;
+    const remRests = Math.max(0, remSets - 1);
     if (ex.mode === 'counted_reps') {
-      sec += sets * (d.reps || 1) * (d.tempo || 2) + Math.max(0, sets - 1) * rest;
+      const reps = d.reps || 1;
+      const tempo = d.tempo || 2;
+      sec += remSets * reps * tempo + remRests * rest;
     } else if (ex.mode === 'timed_hold') {
-      sec += sets * (d.holdSec || 1) + Math.max(0, sets - 1) * rest;
+      sec += remSets * (d.holdSec || 1) + remRests * rest;
     } else if (ex.mode === 'timed_reps') {
       const repTime = (d.holdSec || 5) + (d.restRep || 0);
-      sec += sets * (d.repsPerSet || 1) * repTime + Math.max(0, sets - 1) * rest;
+      sec += remSets * (d.repsPerSet || 1) * repTime + remRests * rest;
     }
     return Math.max(0, Math.round(sec));
   }
@@ -122,6 +126,7 @@ function _emit(info) {
     overallTotal = (d.sets || 1) * (d.repsPerSet || 1);
     overallDone = _priorReps + (_partialResult || 0);
   }
+  overallDone = Math.min(overallDone, overallTotal);
   const overallProgress = overallTotal > 0 ? Math.min(overallDone / overallTotal, 1) : 0;
   const remainSec = _estimateRemaining(ex, info);
   if (_onUpdate) _onUpdate({
@@ -185,7 +190,7 @@ async function _runPrep(ex) {
 }
 
 // --- Counted reps mode (wall angel, pelvic tilt, alternating legs) ---
-async function _runCountedReps(ex, startSet = 1) {
+async function _runCountedReps(ex, startSet = 1, startRep = 1) {
   _state = 'active';
   const { sets, reps, tempo, rest } = ex.defaults;
   let totalDone = 0;
@@ -209,7 +214,8 @@ async function _runCountedReps(ex, startSet = 1) {
     }
 
     // Count reps
-    for (let r = 1; r <= reps; r++) {
+    const firstRep = (s === startSet) ? startRep : 1;
+    for (let r = firstRep; r <= reps; r++) {
       await _checkCancel();
       totalDone++;
       _partialResult = totalDone;
@@ -325,7 +331,7 @@ async function _runTimedHold(ex, startSet = 1) {
 }
 
 // --- Timed reps mode (FESM, chin tuck) ---
-async function _runTimedReps(ex, startSet = 1) {
+async function _runTimedReps(ex, startSet = 1, startRep = 1) {
   _state = 'active';
   const { sets, repsPerSet, holdSec, restRep, rest } = ex.defaults;
   let totalReps = 0;
@@ -337,7 +343,8 @@ async function _runTimedReps(ex, startSet = 1) {
       await voice.playKey(ex.ttsDir, `set_${s}`, 0).catch(() => {});
     }
 
-    for (let r = 1; r <= repsPerSet; r++) {
+    const firstRep = (s === startSet) ? startRep : 1;
+    for (let r = firstRep; r <= repsPerSet; r++) {
       await _checkCancel();
       totalReps++;
       _partialResult = totalReps;
@@ -413,7 +420,7 @@ function _releaseWakeLock() {
   if (_wakeLock) { _wakeLock.release().catch(() => {}); _wakeLock = null; }
 }
 
-export async function startExercise(exercise, onUpdate, { startSet = 1, priorReps = 0, priorHold = 0 } = {}) {
+export async function startExercise(exercise, onUpdate, { startSet = 1, startRep = 1, priorReps = 0, priorHold = 0 } = {}) {
   if (isRunning()) return;
   _exercise = exercise;
   _onUpdate = onUpdate;
@@ -433,11 +440,11 @@ export async function startExercise(exercise, onUpdate, { startSet = 1, priorRep
     let result;
 
     if (exercise.mode === 'counted_reps') {
-      result = await _runCountedReps(exercise, startSet);
+      result = await _runCountedReps(exercise, startSet, startRep);
     } else if (exercise.mode === 'timed_hold') {
       result = await _runTimedHold(exercise, startSet);
     } else if (exercise.mode === 'timed_reps') {
-      result = await _runTimedReps(exercise, startSet);
+      result = await _runTimedReps(exercise, startSet, startRep);
     }
 
     bgm.stop();

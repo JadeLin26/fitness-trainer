@@ -479,18 +479,24 @@ function _startTraining(ex) {
   const priorReps = store.getDayTotalReps(ex.id, day);
   const priorHold = store.getDayTotalHoldSec(ex.id, day);
   let startSet = 1;
+  let startRep = 1;
   if (ex.mode === 'counted_reps' && d.reps) {
     startSet = Math.floor(priorReps / d.reps) + 1;
+    startRep = (priorReps % d.reps) + 1;
   } else if (ex.mode === 'timed_hold' && d.holdSec) {
     startSet = Math.floor(priorHold / d.holdSec) + 1;
   } else if (ex.mode === 'timed_reps' && d.repsPerSet) {
     startSet = Math.floor(priorReps / d.repsPerSet) + 1;
+    startRep = (priorReps % d.repsPerSet) + 1;
   }
-  if (startSet > (d.sets || 1)) startSet = 1;
+  if (startSet > (d.sets || 1)) {
+    startSet = 1;
+    startRep = 1;
+  }
 
   engine.startExercise(ex, info => {
     _updateTrainingUI(info, ex);
-  }, { startSet, priorReps, priorHold });
+  }, { startSet, startRep, priorReps, priorHold });
 }
 
 function _fmtTime(sec) {
