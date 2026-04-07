@@ -244,6 +244,7 @@ async function _runCountedReps(ex, startSet = 1) {
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem === 10 && rest >= 20) voice.playNum(restDir, 10, 0).catch(() => {});
         else if (rem <= 5) voice.playNum(restDir, rem, 0).catch(() => {});
+        else voice.beep(400, 40);
         await _sleep(1000);
       }
 
@@ -291,6 +292,8 @@ async function _runTimedHold(ex, startSet = 1) {
         voice.playNum(ex.ttsDir, rem, 0).catch(() => {});
       } else if (holdSec < 10 && rem <= 2) {
         voice.beep(rem === 1 ? 1000 : 800, 100);
+      } else {
+        voice.beep(500, 50);
       }
       await _sleep(1000);
     }
@@ -311,6 +314,7 @@ async function _runTimedHold(ex, startSet = 1) {
         await _checkCancel();
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem <= 3) voice.playNum(restDir, rem, 0).catch(() => {});
+        else voice.beep(400, 40);
         await _sleep(1000);
       }
       _state = 'active';
@@ -362,6 +366,7 @@ async function _runTimedReps(ex, startSet = 1) {
         for (let rem = restRep; rem >= 1; rem--) {
           await _checkCancel();
           _emit({ phase: 'rest', set: s, remaining: rem, total: restRep, text: `${rem}` });
+          voice.beep(400, 40);
           await _sleep(1000);
         }
         voice.beep(800, 120);
@@ -382,6 +387,7 @@ async function _runTimedReps(ex, startSet = 1) {
         await _checkCancel();
         _emit({ phase: 'rest', set: s, remaining: rem, total: rest, text: `休息 ${rem}s` });
         if (rem <= 3) voice.playNum(restDir, rem, 0).catch(() => {});
+        else voice.beep(400, 40);
         await _sleep(1000);
       }
       _state = 'active';
