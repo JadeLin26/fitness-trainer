@@ -292,7 +292,8 @@ function _isExDone(ex, day) {
   if (ex.dailyCheckTarget) {
     return store.getCheckCount(ex.id, day) >= ex.dailyCheckTarget;
   }
-  return store.isChecked(ex.id, day);
+  if (store.isChecked(ex.id, day)) return true;
+  return _exProgress(ex, day) >= 1;
 }
 
 function _exProgress(ex, day) {
