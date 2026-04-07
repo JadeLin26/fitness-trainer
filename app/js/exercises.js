@@ -176,6 +176,7 @@ export const exercises = [
     details: '来源：Guimarães 2009经典RCT。发元音时口咽部多组肌群协调运动：a激活软腭和咽壁，e/i激活舌中后部和咽侧壁，o/u激活口轮匝肌和颊肌。间歇性发声（元音之间停顿）对肌肉激活强于连续发声。',
     mode: 'timed_reps',
     defaults: { sets: 3, repsPerSet: 5, holdSec: 15, restRep: 3, rest: 10, prepSec: 5 },
+    holdBeepInterval: 3,
     ttsDir: HYOID_TTS,
     ttsMap: HYOID_MAP,
     hasSetAnnounce: true,

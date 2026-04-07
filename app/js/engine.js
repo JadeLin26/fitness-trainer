@@ -350,13 +350,18 @@ async function _runTimedReps(ex, startSet = 1) {
       if (r <= 30) voice.playNum(ex.ttsDir, r, 0).catch(() => {});
 
       // Hold
+      const beepInterval = ex.holdBeepInterval || 1;
       for (let rem = holdSec; rem >= 1; rem--) {
         await _checkCancel();
         _emit({
           phase: 'hold', set: s, totalSets: sets, rep: r, totalReps: repsPerSet,
           remaining: rem, total: holdSec, text: `${rem}`,
         });
-        voice.beep(600 + (holdSec - rem) * 100, 100);
+        if (beepInterval > 1) {
+          if (rem % beepInterval === 0) voice.beep(800, 150);
+        } else {
+          voice.beep(600 + (holdSec - rem) * 100, 100);
+        }
         await _sleep(1000);
       }
       voice.beep(600, 100);
